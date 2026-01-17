@@ -180,8 +180,8 @@ function setupFormListeners() {
                 const id = body && (body.id || body.name || body.documentId);
                 if (!id) throw new Error('No id returned from API');
 
-                // navigate to generate.html with id
-                window.location.href = `generate.html?id=${encodeURIComponent(id)}`;
+                // navigate to generate with id
+                window.location.href = `generate?id=${encodeURIComponent(id)}`;
             } catch (err) {
                 console.error(err);
                 alert('Generation failed: ' + (err.message || err));
