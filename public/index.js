@@ -541,6 +541,10 @@ function initSampleVideos() {
                             if (promptElMain) {
                                 promptElMain.value = sampleText;
                                 promptElMain.dispatchEvent(new Event('input', { bubbles: true }));
+                                try {
+                                    promptElMain.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    promptElMain.focus({ preventScroll: true });
+                                } catch (e) { /* ignore */ }
                             }
 
                             // Prefill content category: prefer explicit card attribute, fall back to top-left tag
