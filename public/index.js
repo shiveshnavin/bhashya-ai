@@ -73,10 +73,24 @@ function setupFormListeners() {
     // Token (example: set from elsewhere)
     // obj.token = ...
 
-    // Prompt textarea: update object as text changes
+    // Prompt textarea: update object as text changes and show character counter
     const promptEl = document.querySelector('[data-prompt]');
+    const PROMPT_MAX = 500;
+    const promptCounter = document.querySelector('[data-prompt-counter]');
     if (promptEl) {
+        try { promptEl.setAttribute('maxlength', String(PROMPT_MAX)); } catch (e) { /* ignore */ }
+        const updateCounter = () => {
+            try {
+                if (promptEl.value.length > PROMPT_MAX) {
+                    promptEl.value = promptEl.value.slice(0, PROMPT_MAX);
+                }
+                if (promptCounter) promptCounter.textContent = `${promptEl.value.length} / ${PROMPT_MAX} characters`;
+            } catch (e) { /* ignore */ }
+        };
+        // initialize
+        updateCounter();
         promptEl.addEventListener('input', () => {
+            updateCounter();
             obj.prompt = promptEl.value;
             console.log(JSON.stringify(obj, null, 2));
         });
