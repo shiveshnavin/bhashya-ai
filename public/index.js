@@ -624,3 +624,596 @@ if (typeof window !== 'undefined') {
         try { initSampleVideos(); } catch (e) { console.error(e); }
     });
 }
+
+// --- Firestore realtime listener for generation document ---
+// Extract `id` from URL (e.g. ?id=daily-gen-video-general-1768676687638)
+(async function initGenerationSnapshotListener() {
+    try {
+        const params = new URLSearchParams(window.location.search || '');
+        const id = params.get('id');
+        if (!id) return; // nothing to do on pages without an id param
+
+        // dynamic import of modular SDK (keeps main bundle light)
+        const appMod = await import('https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js');
+        const fsMod = await import('https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js');
+        const { initializeApp, getApps } = appMod;
+        const { getFirestore, doc, onSnapshot } = fsMod;
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAf0qWODcuFljpgCt56WEY-fo-fsqByKF8",
+            authDomain: "bhashya-ai.firebaseapp.com",
+            projectId: "bhashya-ai",
+            storageBucket: "bhashya-ai.firebasestorage.app",
+            messagingSenderId: "525738664258",
+            appId: "1:525738664258:web:fcd30efa7b433af364a8db",
+            measurementId: "G-B25TV25F1X"
+        };
+
+        let app;
+        try {
+            app = (getApps && getApps().length) ? getApps()[0] : initializeApp(firebaseConfig);
+        } catch (e) {
+            // fallback: try to initialize
+            app = initializeApp(firebaseConfig);
+        }
+
+        const db = getFirestore(app);
+        const docRef = doc(db, 'generations', id);
+
+        // attach snapshot listener and log updates (extend to update UI as needed)
+        const unsubscribe = onSnapshot(docRef, (snapshot) => {
+            if (!snapshot.exists()) {
+                console.warn('Generation document removed:', id);
+                return;
+            }
+            const data = snapshot.data();
+            console.log('Generation snapshot', snapshot.id, data);
+
+            // Example: update a status element if present
+            try {
+                const statusEl = document.querySelector('[data-generation-status]');
+                if (statusEl) statusEl.textContent = data.status || 'UNKNOWN';
+
+                // Update page title and hide current-step when finished
+                try {
+                    const pageTitle = document.querySelector('main h1');
+                    const currentStepSpan = document.querySelector('[data-generation-current-step]');
+                    const currentStepWrapper = currentStepSpan ? currentStepSpan.closest('div') : null;
+                    const statusRawLocal = (data && data.status) ? String(data.status).toUpperCase() : '';
+                    if (statusRawLocal === 'SUCCESS' || statusRawLocal === 'PARTIAL_SUCCESS') {
+                        if (pageTitle) pageTitle.textContent = 'Video Generated';
+                        if (currentStepWrapper) currentStepWrapper.style.display = 'none';
+                    } else {
+                        if (pageTitle) pageTitle.textContent = 'Generating Your Reel';
+                        if (currentStepWrapper) currentStepWrapper.style.display = '';
+                    }
+                } catch (e) { /* ignore title/step update errors */ }
+
+                // Example: show current task index
+                const taskIdxEl = document.querySelector('[data-generation-task-idx]');
+                if (taskIdxEl && typeof data.currentTaskIdx !== 'undefined') taskIdxEl.textContent = String(data.currentTaskIdx);
+
+                // Example: show current step — prefer tasks[currentTaskIdx], fallback to last executedTasks entry
+                const currentStepEl = document.querySelector('[data-generation-current-step]');
+                try {
+                    if (currentStepEl) {
+                        const totalTasks = Array.isArray(data.tasks) ? data.tasks.length : 0;
+                        if (typeof data.currentTaskIdx === 'number' && totalTasks > 0 && data.currentTaskIdx >= 0 && data.currentTaskIdx < totalTasks) {
+                            const t = data.tasks[data.currentTaskIdx];
+                            const name = t && (t.uniqueStepName || t.unique_step_name || t.name);
+                            if (name) currentStepEl.textContent = formatTaskLabel(name);
+                            else currentStepEl.textContent = '—';
+                        } else {
+                            const executed = Array.isArray(data.executedTasks) ? data.executedTasks : [];
+                            if (executed.length) {
+                                const last = executed[executed.length - 1];
+                                const rawLastName = last.uniqueStepName || last.unique_step_name || last.name || '—';
+                                currentStepEl.textContent = formatTaskLabel(rawLastName);
+                            } else {
+                                currentStepEl.textContent = '—';
+                            }
+                        }
+                    }
+                } catch (e) { /* ignore */ }
+
+                // Update overall percent and progress bar if tasks/currentTaskIdx available
+                try {
+                    const percentEl = document.querySelector('[data-generation-percent]');
+                    const barEl = document.querySelector('[data-generation-bar]');
+                    const msgEl = document.querySelector('[data-generation-message]');
+
+                    const totalTasks = Array.isArray(data.tasks) ? data.tasks.length : 0;
+                    // Special-case: when status is PAUSED, show 'Queued' instead of numeric percent
+                    const statusRawShort = (data && data.status) ? String(data.status).toUpperCase() : '';
+                    if (statusRawShort === 'PAUSED') {
+                        if (percentEl) percentEl.textContent = 'Queued';
+                        if (barEl) {
+                            barEl.style.width = '0%';
+                            barEl.classList.remove('hidden');
+                        }
+                    } else {
+                        let pct = null;
+                        if (typeof data.currentTaskIdx === 'number' && totalTasks > 0) {
+                            // currentTaskIdx may be 0-based index of current task; clamp
+                            pct = Math.round(Math.max(0, Math.min(100, (data.currentTaskIdx / Math.max(1, totalTasks)) * 100)));
+                        } else if (Array.isArray(data.executedTasks) && totalTasks > 0) {
+                            pct = Math.round((data.executedTasks.length / totalTasks) * 100);
+                        }
+
+                        if (pct !== null) {
+                            if (percentEl) percentEl.textContent = pct + '%';
+                            if (barEl) barEl.style.width = pct + '%';
+                        }
+                    }
+
+                    // Manage preview video visibility: hide preview video unless the status indicates success
+                    try {
+                        const previewRoot = document.querySelector('[data-alt="Abstract blurry neon cyberpunk background"]');
+                        const previewVideo = document.getElementById('generation-preview-video');
+                        if (previewVideo && previewRoot) {
+                            if (statusRawShort !== 'SUCCESS' && statusRawShort !== 'PARTIAL_SUCCESS') {
+                                try { previewVideo.pause(); } catch (e) { }
+                                previewVideo.classList.add('hidden');
+                                try { previewVideo.removeAttribute('src'); previewVideo.load(); } catch (e) { }
+                                const spinner = previewRoot.querySelector('.size-16');
+                                if (spinner) spinner.classList.remove('hidden');
+                                // restore overlays when not playing
+                                try {
+                                    const scan = previewRoot.querySelector('.scanline');
+                                    const darkBackdrop = previewRoot.querySelector('.backdrop-blur-sm');
+                                    const centerOverlay = previewRoot.querySelector('.relative.z-10');
+                                    const rightOverlay = previewRoot.querySelector('.absolute.bottom-10.right-4');
+                                    const leftOverlay = previewRoot.querySelector('.absolute.bottom-10.left-4');
+                                    if (scan) scan.style.display = '';
+                                    if (darkBackdrop) darkBackdrop.style.display = '';
+                                    if (centerOverlay) centerOverlay.style.display = '';
+                                    if (rightOverlay) rightOverlay.style.display = '';
+                                    if (leftOverlay) leftOverlay.style.display = '';
+                                    // hide/unhide unmute control
+                                    try {
+                                        const unmute = document.getElementById('generation-unmute-btn');
+                                        if (unmute) unmute.classList.add('hidden');
+                                    } catch (e) { }
+                                } catch (e) { }
+                            }
+                        }
+                    } catch (e) { /* ignore preview visibility */ }
+
+                    // Update progress message to reflect current step or status
+                    try {
+                        if (msgEl) {
+                            const executed = Array.isArray(data.executedTasks) ? data.executedTasks : [];
+                            const lastName = (executed.length ? (executed[executed.length - 1].uniqueStepName || executed[executed.length - 1].unique_step_name || executed[executed.length - 1].name) : null) || data.status || 'Processing...';
+                            msgEl.textContent = String(lastName);
+                        }
+                    } catch (e) { /* ignore */ }
+                } catch (e) { /* ignore progress update errors */ }
+
+                // If doc contains a `raw` object with original submission fields, populate matching UI elements
+                try {
+                    const raw = (data && typeof data.raw === 'object') ? data.raw : null;
+                    if (raw) {
+                        const rawFields = ['delivery_email', 'duration', 'language', 'orientation', 'prompt', 'resolution', 'speech_quality', 'theme', 'token'];
+                        rawFields.forEach(k => {
+                            try {
+                                const el = document.querySelector(`[data-raw-${k}]`);
+                                if (!el) return;
+                                const v = raw[k];
+                                if (typeof v === 'undefined' || v === null) {
+                                    el.textContent = '—';
+                                    return;
+                                }
+                                // Small formatting rules for nicer UI
+                                if (k === 'duration') {
+                                    // show as minutes when numeric
+                                    if (typeof v === 'number') el.textContent = `${v} minutes`;
+                                    else el.textContent = String(v);
+                                    return;
+                                }
+                                if (k === 'orientation') {
+                                    if ((String(v)).toLowerCase() === 'portrait') el.textContent = '9:16 Vertical';
+                                    else if ((String(v)).toLowerCase() === 'landscape') el.textContent = '16:9 Horizontal';
+                                    else el.textContent = String(v);
+                                    return;
+                                }
+                                if (k === 'speech_quality') {
+                                    // present more friendly
+                                    el.textContent = String(v).replace(/[_-]/g, ' ');
+                                    return;
+                                }
+                                // default
+                                el.textContent = String(v);
+                            } catch (e) { /* ignore per-field */ }
+                        });
+                    }
+                } catch (e) { /* ignore raw handling */ }
+
+                // Estimate wait time from queue information in output (if present).
+                try {
+                    const out = data && (data.output || data.result || null);
+                    const queueKeys = ['queue', 'queueLength', 'queue_length', 'queuePosition', 'queue_position', 'position', 'queuePos'];
+                    let q = null;
+                    if (out && typeof out === 'object') {
+                        for (const k of queueKeys) {
+                            if (typeof out[k] !== 'undefined' && out[k] !== null) {
+                                const n = Number(out[k]);
+                                if (!Number.isNaN(n)) { q = n; break; }
+                            }
+                        }
+                    }
+
+                    const etaEl = document.querySelector('[data-generation-estimate]');
+                    if (etaEl) {
+                        const statusRawShort2 = (data && data.status) ? String(data.status).toUpperCase() : '';
+                        // If completed, prefer showing time taken using startTime
+                        if ((statusRawShort2 === 'SUCCESS' || statusRawShort2 === 'PARTIAL_SUCCESS') && data && data.startTime) {
+                            const st = Number(data.startTime);
+                            // Prefer explicit endTime provided by the document rather than using current time
+                            const et = (typeof data.endTime !== 'undefined' && data.endTime !== null) ? Number(data.endTime) : NaN;
+                            if (!Number.isNaN(st) && st > 0 && !Number.isNaN(et) && et > 0 && et >= st) {
+                                const mins = Math.max(0, Math.round((et - st) / 60000));
+                                etaEl.textContent = `Time taken: ~${mins} minute${mins === 1 ? '' : 's'}`;
+                            } else {
+                                etaEl.textContent = 'Time taken: —';
+                            }
+                        } else if (q && q > 0) {
+                            const minutes = Math.max(0, Math.round(q * 5));
+                            etaEl.textContent = `Estimated wait: ~${minutes} minute${minutes === 1 ? '' : 's'} (queue: ${q})`;
+                        } else {
+                            etaEl.textContent = 'Estimated wait: —';
+                        }
+                    }
+                } catch (e) { /* ignore ETA wiring */ }
+
+                // If the document status indicates success, force overall UI to success and show output URL if present
+                try {
+                    const statusRaw = (data && data.status) ? String(data.status).toUpperCase() : '';
+                    if (statusRaw === 'SUCCESS' || statusRaw === 'PARTIAL_SUCCESS') {
+                        const percentEl = document.querySelector('[data-generation-percent]');
+                        const barEl = document.querySelector('[data-generation-bar]');
+                        const msgEl = document.querySelector('[data-generation-message]');
+                        if (percentEl) percentEl.textContent = 'Success';
+                        if (barEl) {
+                            barEl.style.width = '100%';
+                            barEl.classList.remove('hidden');
+                        }
+                        if (msgEl) msgEl.textContent = 'Completed';
+
+                        // show output URL if available at data.output.url or data.output.downloadUrl
+                        try {
+                            const out = data.output || (data.result || null);
+                            const url = out && (out.url || out.downloadUrl || out.download_url || out.output_url);
+                            const outPanel = document.getElementById('generation-output');
+                            const outAnchor = outPanel ? outPanel.querySelector('[data-output-url]') : null;
+                            const openBtn = document.getElementById('open-output-btn');
+                            const downloadBigBtn = document.getElementById('download-output-big-btn');
+                            if (url && outPanel && outAnchor) {
+                                outAnchor.href = url;
+                                outAnchor.textContent = url.length > 60 ? (url.slice(0, 60) + '…') : url;
+                                outPanel.classList.remove('hidden');
+                                if (openBtn) {
+                                    openBtn.classList.remove('hidden');
+                                    openBtn.onclick = () => { try { window.open(url, '_blank'); } catch (e) { window.location.href = url; } };
+                                }
+
+                                if (downloadBigBtn) {
+                                    downloadBigBtn.classList.remove('hidden');
+                                    // For large videos, avoid fetching the whole file in-page; let the browser handle download/streaming.
+                                    downloadBigBtn.onclick = () => {
+                                        try {
+                                            // Open in a new tab so the user can stream or save using browser controls
+                                            const opened = window.open(url, '_blank');
+                                            if (!opened) window.location.href = url;
+                                        } catch (e) {
+                                            try { window.location.href = url; } catch (e2) { /* ignore */ }
+                                        }
+                                    };
+                                }
+                            }
+                            // Also wire the preview player: insert or update a video element in the preview area and play it
+                            try {
+                                const previewRoot = document.querySelector('[data-alt="Abstract blurry neon cyberpunk background"]');
+                                if (previewRoot && url) {
+                                    let videoEl = document.getElementById('generation-preview-video');
+                                    if (!videoEl) {
+                                        videoEl = document.createElement('video');
+                                        videoEl.id = 'generation-preview-video';
+                                        videoEl.className = 'absolute inset-0 w-full h-full object-cover hidden';
+                                        videoEl.setAttribute('playsinline', '');
+                                        videoEl.controls = true;
+                                        previewRoot.insertBefore(videoEl, previewRoot.firstChild);
+                                    }
+                                    try { videoEl.pause(); } catch (e) { }
+                                    videoEl.src = url;
+                                    videoEl.classList.remove('hidden');
+                                    try {
+                                        // Prefer to autoplay unmuted — set up and try to play with audio.
+                                        videoEl.autoplay = true;
+                                        videoEl.loop = false;
+                                        videoEl.muted = false;
+                                        videoEl.load();
+                                        // Attempt to play unmuted. If the browser blocks autoplay with audio,
+                                        // fall back to muted autoplay and show the Unmute button.
+                                        const tryUnmutedPlay = async () => {
+                                            let playedUnmuted = false;
+                                            try {
+                                                await videoEl.play();
+                                                playedUnmuted = true;
+                                            } catch (err) {
+                                                try {
+                                                    // fallback: allow muted autoplay so user sees video, then show unmute control
+                                                    videoEl.muted = true;
+                                                    await videoEl.play().catch(() => { /* ignore */ });
+                                                } catch (e) { /* ignore */ }
+                                            }
+
+                                            // create or show the Unmute button only if playback ended up muted
+                                            try {
+                                                let unmute = document.getElementById('generation-unmute-btn');
+                                                if (!unmute) {
+                                                    unmute = document.createElement('button');
+                                                    unmute.id = 'generation-unmute-btn';
+                                                    unmute.type = 'button';
+                                                    unmute.className = 'absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-black/60 text-white text-sm backdrop-blur-sm';
+                                                    unmute.style.zIndex = '40';
+                                                    unmute.textContent = 'Unmute';
+                                                    unmute.addEventListener('click', (ev) => {
+                                                        ev.stopPropagation();
+                                                        try { videoEl.muted = false; videoEl.volume = 1.0; videoEl.play().catch(() => { /* ignore */ }); } catch (e) { }
+                                                        try { unmute.classList.add('hidden'); } catch (e) { }
+                                                    });
+                                                    previewRoot.appendChild(unmute);
+                                                }
+                                                if (playedUnmuted) {
+                                                    // no need to show unmute control
+                                                    unmute.classList.add('hidden');
+                                                } else {
+                                                    unmute.classList.remove('hidden');
+                                                }
+                                            } catch (e) { /* ignore unmute wiring */ }
+                                            // allow clicking anywhere in the preview to unmute (first user gesture)
+                                            try {
+                                                if (!previewRoot.__unmuteClickAdded) {
+                                                    previewRoot.addEventListener('click', (ev) => {
+                                                        try {
+                                                            if (videoEl && videoEl.muted) {
+                                                                videoEl.muted = false;
+                                                                videoEl.volume = 1.0;
+                                                                videoEl.play().catch(() => { /* ignore */ });
+                                                                const unmuteBtn = document.getElementById('generation-unmute-btn');
+                                                                if (unmuteBtn) unmuteBtn.classList.add('hidden');
+                                                            }
+                                                        } catch (e) { /* ignore */ }
+                                                    }, { once: false });
+                                                    previewRoot.__unmuteClickAdded = true;
+                                                }
+                                            } catch (e) { }
+                                        };
+                                        tryUnmutedPlay();
+                                    } catch (e) { }
+
+                                    // hide preview overlays (scanline, dark backdrop, spinner, mock UI) when playing
+                                    try {
+                                        const scan = previewRoot.querySelector('.scanline');
+                                        const darkBackdrop = previewRoot.querySelector('.backdrop-blur-sm');
+                                        const centerOverlay = previewRoot.querySelector('.relative.z-10');
+                                        const rightOverlay = previewRoot.querySelector('.absolute.bottom-10.right-4');
+                                        const leftOverlay = previewRoot.querySelector('.absolute.bottom-10.left-4');
+                                        if (scan) scan.style.display = 'none';
+                                        if (darkBackdrop) darkBackdrop.style.display = 'none';
+                                        if (centerOverlay) centerOverlay.style.display = 'none';
+                                        if (rightOverlay) rightOverlay.style.display = 'none';
+                                        if (leftOverlay) leftOverlay.style.display = 'none';
+                                    } catch (e) { }
+
+                                    const spinner = previewRoot.querySelector('.size-16');
+                                    if (spinner) spinner.classList.add('hidden');
+                                }
+                            } catch (e) { /* ignore preview wiring */ }
+                        } catch (e) { /* ignore output wiring */ }
+
+                        // hide cancel button (if present)
+                        try { const cb = document.getElementById('cancel-generation-btn'); if (cb) cb.classList.add('hidden'); } catch (e) { }
+
+                        // once complete, unsubscribe from realtime updates (we still expose unsubscribe for debugging)
+                        try { if (window.__generationSnapshotUnsubscribe) { window.__generationSnapshotUnsubscribe(); } } catch (e) { /* ignore */ }
+                        // no need to continue with other rendering for completed status
+                    }
+                } catch (e) { /* ignore status handling */ }
+
+                // Render pipeline tasks: uses `tasks` array as source of truth and `executedTasks` for status
+                try {
+                    const pipelineContainer = document.getElementById('generation-pipeline');
+                    if (pipelineContainer && Array.isArray(data.tasks)) {
+                        // Build a map of executed task statuses by uniqueStepName for quick lookup
+                        const executed = Array.isArray(data.executedTasks) ? data.executedTasks : [];
+                        const execMap = new Map();
+                        executed.forEach(e => {
+                            const key = e.uniqueStepName || e.unique_step_name || e.name;
+                            if (key) execMap.set(key, e.status || 'UNKNOWN');
+                        });
+
+                        // currentTaskIdx relates to `tasks` array
+                        const currentIdx = (typeof data.currentTaskIdx === 'number') ? data.currentTaskIdx : -1;
+
+                        // render
+                        // Build a filtered list of tasks to render (exclude SKIPPED) so we can correctly
+                        // determine the last visible node and avoid rendering a connector below it.
+                        const tasksArr = Array.isArray(data.tasks) ? data.tasks : [];
+                        const renderList = [];
+                        tasksArr.forEach((t, idx) => {
+                            const name = t.uniqueStepName || t.unique_step_name || t.name || `step-${idx}`;
+                            const status = execMap.get(name) || (idx < currentIdx ? 'SUCCESS' : (idx === currentIdx ? 'IN_PROGRESS' : 'PENDING'));
+                            if (status === 'SKIPPED') return;
+                            renderList.push({ t, idx, name, status });
+                        });
+
+                        pipelineContainer.innerHTML = '';
+                        renderList.forEach((item, rIdx) => {
+                            const { t, idx, name, status } = item;
+                            // left column: icon / connector
+                            const leftCol = document.createElement('div');
+                            leftCol.className = 'flex flex-col items-center';
+                            const circle = document.createElement('div');
+                            circle.className = 'size-8 rounded-full flex items-center justify-center';
+                            const connector = document.createElement('div');
+                            connector.className = 'w-1 h-12 grow';
+
+                            if (status === 'SUCCESS') {
+                                circle.classList.add('bg-primary', 'text-background-dark');
+                                circle.innerHTML = '<span class="material-symbols-outlined text-sm font-bold">check</span>';
+                                connector.classList.add('bg-primary');
+                            } else if (status === 'IN_PROGRESS') {
+                                circle.classList.add('bg-background-dark', 'border-2', 'border-primary', 'text-primary');
+                                circle.innerHTML = '<span class="material-symbols-outlined text-xl animate-spin">refresh</span>';
+                                connector.classList.add('bg-border-dark');
+                            } else {
+                                // pending or unknown
+                                circle.classList.add('bg-background-dark', 'border-2', 'border-border-dark', 'text-white/20');
+                                circle.innerHTML = '<span class="material-symbols-outlined text-sm">schedule</span>';
+                                connector.classList.add('bg-border-dark');
+                            }
+
+                            leftCol.appendChild(circle);
+                            // connector for all except last visible node
+                            if (rIdx !== renderList.length - 1) leftCol.appendChild(connector);
+
+                            // right column: text
+                            const rightCol = document.createElement('div');
+                            rightCol.className = 'flex flex-col pb-6';
+                            const title = document.createElement('p');
+                            title.className = (status === 'SUCCESS' ? 'text-white text-lg font-bold leading-none' : (status === 'IN_PROGRESS' ? 'text-primary text-lg font-bold leading-none' : 'text-white/40 text-lg font-bold leading-none'));
+                            title.textContent = formatTaskLabel(name);
+                            const subtitle = document.createElement('p');
+                            subtitle.className = (status === 'SUCCESS' ? 'text-[#9abcbc] text-sm mt-1' : 'text-white/20 text-sm mt-1');
+                            subtitle.textContent = (t.description || getDefaultDescriptionFor(name) || '');
+                            rightCol.appendChild(title);
+                            rightCol.appendChild(subtitle);
+
+                            pipelineContainer.appendChild(leftCol);
+                            pipelineContainer.appendChild(rightCol);
+                        });
+                    }
+                } catch (e) { console.error('Pipeline render error', e); }
+            } catch (e) { /* silent */ }
+        }, (err) => {
+            console.error('Snapshot listener error for', id, err);
+        });
+
+        // expose for debugging/unsubscribe later
+        window.__generationSnapshotUnsubscribe = unsubscribe;
+    } catch (e) {
+        console.error('Failed to initialize generation snapshot listener', e);
+    }
+})();
+
+// small helpers used when rendering pipeline
+const stepDescriptions = {
+    "load-topic": "Loading the next topic for generation",
+    "notify-topics-exhausted": "No more topics available; notifying handler",
+    "prepare-caption-and-category-generation": "Preparing to generate the captions and predict the adjusted category from topic",
+    "generate-reel-caption": "Generating a social-ready caption for the reel",
+    "prepare-script-prompt-epic-style": "Preparing an epic-style script prompt for narration",
+    "generate-script": "Generating the narration script",
+    "parse-script-response": "Parsing script output into structured frames and timings",
+    "generate-audio-groq": "Synthesizing high-quality voiceover audio",
+    "generate-captions": "Generating subtitle captions from script",
+    "generate-image-prompts-hindu": "Building image prompts for mythological style",
+    "generate-image-prompts-default": "Building default image prompts for scenes",
+    "generate-images-pollinations": "Generating visual assets using Pollinations",
+    "prep-animation": "Preparing animation parameters and keyframes",
+    "generate-depth-animation": "Generating depth-aware parallax animations",
+    "load-template": "Loading video template and layout",
+    "load-audio-assets-meta": "Loading metadata for audio assets",
+    "select-assets": "Selecting the best matching assets for each shot",
+    "download-assets": "Downloading selected assets to local workspace",
+    "generate-manuscript": "Compiling manuscript and shot list",
+    "prepare-assets-to-export": "Packaging assets and timelines for export",
+    "export-assets": "Exporting final video assets",
+    "trigger-render": "Triggering rendering job on render farm",
+    "notify": "Sending notifications about generation progress",
+    "prepare-schedule-post": "Preparing social post metadata for scheduling",
+    "schedule": "Scheduling the post for publishing",
+    "update-topic": "Marking topic as used and updating DB",
+};
+
+function formatTaskLabel(name) {
+    // humanize common step keys
+    return String(name).replace(/[-_]/g, ' ').replace(/\b(load|generate|prepare|select|download|export|trigger|notify|schedule|update)\b/gi, function (m) { return m.charAt(0).toUpperCase() + m.slice(1); });
+}
+
+function getDefaultDescriptionFor(name) {
+    const key = String(name).toLowerCase();
+    if (stepDescriptions[key]) return stepDescriptions[key];
+    // fallback heuristics
+    if (key.includes('script')) return 'AI Storyboard and voiceover script finalized.';
+    if (key.includes('voice')) return 'Realistic narration synthesized with background mix.';
+    if (key.includes('asset') || key.includes('image') || key.includes('generate-images')) return 'Rendering frames and visual assets...';
+    if (key.includes('synth') || key.includes('export')) return 'Merging layers, applying transitions and FX.';
+    return '';
+}
+
+// Setup Cancel Generation button handler: calls DELETE /api/generate/<id>, hides button, shows stopped UI
+(function setupCancelGeneration() {
+    try {
+        const btn = document.getElementById('cancel-generation-btn');
+        if (!btn) return;
+
+        btn.addEventListener('click', async (ev) => {
+            ev.preventDefault();
+            try {
+                btn.disabled = true;
+                const params = new URLSearchParams(window.location.search || '');
+                const id = params.get('id');
+                if (!id) {
+                    alert('No generation id found in URL');
+                    btn.disabled = false;
+                    return;
+                }
+
+                const res = await fetch(`/api/generate/${encodeURIComponent(id)}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!res.ok) {
+                    let bodyText = await res.text().catch(() => res.statusText || '');
+                    console.error('Cancel failed', res.status, bodyText);
+                    alert('Failed to cancel generation: ' + (bodyText || res.status));
+                    btn.disabled = false;
+                    return;
+                }
+
+                // success: update UI
+                try {
+                    // hide the cancel button
+                    btn.classList.add('hidden');
+
+                    // hide or reset progress visuals
+                    const percentEl = document.querySelector('[data-generation-percent]');
+                    const barEl = document.querySelector('[data-generation-bar]');
+                    const msgEl = document.querySelector('[data-generation-message]');
+                    const stoppedEl = document.getElementById('generation-stopped');
+
+                    if (percentEl) percentEl.textContent = 'Stopped';
+                    if (barEl) {
+                        barEl.style.width = '0%';
+                        barEl.classList.add('hidden');
+                    }
+                    if (msgEl) msgEl.textContent = 'Generation stopped';
+                    if (stoppedEl) stoppedEl.classList.remove('hidden');
+
+                    // unsubscribe from realtime updates if available
+                    if (window.__generationSnapshotUnsubscribe) {
+                        try { window.__generationSnapshotUnsubscribe(); } catch (e) { /* ignore */ }
+                    }
+                } catch (e) { console.error('UI update after cancel failed', e); }
+
+            } catch (e) {
+                console.error('Cancel error', e);
+                alert('Cancel request failed');
+                try { btn.disabled = false; } catch (e) { }
+            }
+        });
+    } catch (e) { /* ignore setup */ }
+})();
