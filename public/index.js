@@ -567,6 +567,18 @@ function initSampleVideos() {
                                 if (langBtn) {
                                     try { langBtn.click(); } catch (e) { /* ignore */ }
                                 }
+                            } else {
+                                // If no explicit data-language set on the card, detect mythological category
+                                // and set language to Hindi when the sample is Mythological.
+                                try {
+                                    const selectedCategoryText = categorySelect ? (categorySelect.options[categorySelect.selectedIndex].text || '').toLowerCase() : '';
+                                    if (selectedCategoryText.includes('myth')) {
+                                        const hindiBtn = document.querySelector('[data-language="hindi"]');
+                                        if (hindiBtn) {
+                                            try { hindiBtn.click(); } catch (e) { /* ignore */ }
+                                        }
+                                    }
+                                } catch (e) { /* ignore */ }
                             }
                         });
                     }
