@@ -4,20 +4,5 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "/api/generate",
-        "run": {
-          "serviceId": "reverse-proxy",
-          "region": "us-central1"
-        }
-      },
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
-  }
-}
+      "**/node_modules/**"{
+        "rewrites": [
