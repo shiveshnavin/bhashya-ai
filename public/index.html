@@ -62,19 +62,33 @@
             font-family: 'Space Grotesk', sans-serif;
         }
 
+        /* Premium outline for locked features */
+        .premium-outline:not(.is-active) {
+            box-shadow: inset 0 0 0 2px rgba(250, 204, 21, 0.95);
+            /* golden */
+        }
+
+        .premium-highlight {
+            box-shadow: 0 0 0 6px rgba(250, 204, 21, 0.18);
+            transition: box-shadow 250ms ease-in-out;
+        }
+
+        .premium-badge {
+            display: inline-block;
+            font-size: .65rem;
+            padding: 0.125rem 0.45rem;
+            border-radius: 9999px;
+            margin-left: 0.5rem;
+            background: #00c2c2;
+            /* teal primary */
+            color: #071116;
+            font-weight: 600;
+            vertical-align: middle;
+        }
+
         .custom-scrollbar::-webkit-scrollbar {
             width: 6px;
-            height: 6px;
-        }
 
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #2A2D32;
-            border-radius: 10px;
-        }
-
-        .glass-panel {
-            background: rgba(27, 29, 33, 0.7);
-            backdrop-filter: blur(12px);
         }
     </style>
 </head>
@@ -116,8 +130,9 @@
         <!-- Header Text -->
         <div class="mb-8">
             <h2 class="text-4xl font-bold tracking-tight mb-2">Craft Your Script</h2>
-            <p class="text-slate-500 dark:text-slate-400">Describe the visual and narrative flow of your reel. Be as
-                detailed as possible.</p>
+            <p class="text-slate-500 dark:text-slate-400">Describe the topic content in detail. No need to mention style
+                or
+                mood, our AI will handle that!</p>
         </div>
         <!-- Central Prompt Area -->
         <section class="mb-10">
@@ -134,9 +149,9 @@
                             </div>
                         </div>
                         <div class="flex-1">
-                            <textarea
+                            <textarea data-prompt
                                 class="w-full bg-transparent border-none focus:ring-0 text-lg min-h-[160px] resize-none placeholder:text-slate-400 dark:placeholder:text-slate-600 font-display"
-                                placeholder="Describe the scene... e.g., 'A cinematic drone shot of a futuristic Tokyo with neon lights reflecting on wet pavement, transitioning into a close-up of a digital artist at work...'"></textarea>
+                                placeholder="Describe the topic content in detail, explain the main points, key messages, and any specific information you want included. For example, Top 5 places to visit in Montana in summer"></textarea>
                             <div
                                 class="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-border-muted">
                                 <div class="flex gap-2">
@@ -159,7 +174,50 @@
                     </div>
                 </div>
             </div>
+            <br />
+            <!-- Email Input (Mandatory) - moved to top -->
+            <div
+                class="bg-white dark:bg-surface p-5 rounded-xl border border-slate-200 dark:border-border-muted lg:col-span-1">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Delivery Email
+                    *</label>
+                <p id="delivery-email-help" class="text-slate-500 dark:text-slate-400">Generation takes a few minutes
+                    due to high demand. Please
+                    provide a valid email to receive the output.</p>
+                <br />
+                <div class="relative">
+                    <input aria-describedby="delivery-email-help delivery-email-error" aria-invalid="false" required
+                        data-delivery-email
+                        class="w-full bg-slate-100 dark:bg-background-dark border border-slate-200 dark:border-border-muted rounded-lg pl-10 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+                        placeholder="alex@design.com" type="email" />
+                    <span
+                        class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">mail</span>
+                </div>
+                <p id="delivery-email-error" class="hidden mt-2 text-sm text-red-400">Please enter a valid email
+                    address.</p>
+            </div>
         </section>
+
+        <!-- Access Premium features (collapsed by default) -->
+        <section class="mb-8">
+            <details class="bg-white dark:bg-surface p-5 rounded-xl border border-slate-200 dark:border-border-muted">
+                <summary class="cursor-pointer text-lg font-bold">Access Premium features</summary>
+                <div class="mt-4">
+                    <label class="block text-xs font-semibold text-slate-500 mb-2">As this is a hobby project with no
+                        commercial backing, I had to limit access to premium features.<br>If you have a token, please
+                        enter
+                        it below to unlock the premium features.</label>
+                    <div class="relative">
+                        <input data-token-input
+                            class="w-full bg-slate-100 dark:bg-background-dark border border-slate-200 dark:border-border-muted rounded-lg pl-3 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+                            placeholder="Paste your token here (optional)" type="text" />
+                    </div>
+                    <p class="mt-2 text-xs text-slate-500">To request a token, contact: <a
+                            href="https://www.linkedin.com/in/shiveshnavin/" target="_blank" rel="noopener noreferrer"
+                            class="text-primary underline">Shivesh Navin</a></p>
+                </div>
+            </details>
+        </section>
+
         <!-- Configuration Grid -->
         <section class="mb-12">
             <div class="flex items-center gap-2 mb-6">
@@ -167,19 +225,6 @@
                 <h3 class="text-xl font-bold">Configure Settings</h3>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- Email Input (Mandatory) - moved to top -->
-                <div
-                    class="bg-white dark:bg-surface p-5 rounded-xl border border-slate-200 dark:border-border-muted lg:col-span-1">
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Delivery Email
-                        *</label>
-                    <div class="relative">
-                        <input
-                            class="w-full bg-slate-100 dark:bg-background-dark border-none rounded-lg pl-10 py-3 text-sm focus:ring-1 focus:ring-primary"
-                            placeholder="alex@design.com" type="email" />
-                        <span
-                            class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">mail</span>
-                    </div>
-                </div>
                 <!-- Orientation -->
                 <div class="bg-white dark:bg-surface p-5 rounded-xl border border-slate-200 dark:border-border-muted">
                     <label
@@ -265,12 +310,16 @@
             </div>
             <!-- Generate Action -->
             <div class="mt-10 flex flex-col items-center">
-                <a href="generate.html"
+                <button id="generate-btn" type="button"
                     class="w-full max-w-[400px] bg-primary hover:bg-primary/90 text-background-dark font-bold text-lg py-4 rounded-xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-3 active:scale-[0.98]">
                     <span class="material-symbols-outlined font-bold">rocket_launch</span>
-                    Generate Reel
-                    <span class="text-sm opacity-60 font-normal ml-2">(-40 Credits)</span>
-                </a>
+                    <span class="generate-text">Generate Reel</span>
+                    <svg class="generate-spinner hidden animate-spin ml-2" xmlns="http://www.w3.org/2000/svg" width="18"
+                        height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12a9 9 0 11-18 0" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                    <!-- <span class="text-sm opacity-60 font-normal ml-2">(-40 Credits)</span> -->
+                </button>
                 <p class="mt-4 text-xs text-slate-500">Estimated generation time: 2-4 minutes. We'll email you when it's
                     ready.</p>
             </div>
@@ -370,11 +419,25 @@
         </section>
     </main>
     <!-- Floating Help Button -->
-    <button
+    <!-- <button
         class="fixed bottom-8 right-8 w-14 h-14 bg-surface border border-border-muted rounded-full flex items-center justify-center shadow-2xl hover:bg-slate-800 transition-colors group">
         <span
             class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">question_answer</span>
-    </button>
+    </button> -->
+    <!-- Error Modal -->
+    <div id="error-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+        <div class="absolute inset-0 bg-black/50"></div>
+        <div role="dialog" aria-modal="true"
+            class="relative bg-white dark:bg-surface text-slate-900 dark:text-slate-100 rounded-lg max-w-md w-full p-6 shadow-lg">
+            <h4 class="text-lg font-bold mb-2">Error starting generation</h4>
+            <p id="error-modal-message" class="text-sm text-slate-700 dark:text-slate-300 mb-4">An error occurred.
+            </p>
+            <div class="flex justify-end gap-2">
+                <button id="error-modal-close"
+                    class="px-4 py-2 bg-primary text-background-dark rounded-lg font-semibold">Close</button>
+            </div>
+        </div>
+    </div>
     <script src="index.js"></script>
     <script>
 

@@ -4,5 +4,27 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"{
-        "rewrites": [
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/generate",
+        "function": "apiGenerateProxy"
+      }
+    ]
+  },
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs24"
+  },
+  "emulators": {
+    "hosting": {
+      "port": 5002,
+      "host": "localhost"
+    },
+    "functions": {
+      "host": "localhost",
+      "port": 5003
+    }
+  }
+}
