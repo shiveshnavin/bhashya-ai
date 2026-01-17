@@ -25,8 +25,12 @@ The backend host (media.semibit.in) is configured via environment variables and 
 # Login to Firebase
 firebase login
 
-# Update .firebaserc with your project ID
-# Replace "your-project-id" with your actual Firebase project ID
+# Set your Firebase project ID
+# Option 1: Update .firebaserc manually and replace "your-project-id" with your actual Firebase project ID
+# Option 2: Use the Firebase CLI to set it automatically
+firebase use --add
+
+# This will prompt you to select a project and alias it as "default"
 ```
 
 ### 2. Deploy Cloud Run Proxy Service
@@ -42,10 +46,14 @@ gcloud run deploy reverse-proxy \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars BACKEND_HOST=media.semibit.in
+  --set-env-vars BACKEND_HOST=media.semibit.in \
+  --set-env-vars CORS_ORIGIN=https://YOUR_PROJECT_ID.web.app
 ```
 
-**Important**: Replace `YOUR_PROJECT_ID` with your actual Google Cloud project ID.
+**Important**: 
+- Replace `YOUR_PROJECT_ID` with your actual Google Cloud project ID.
+- Replace `CORS_ORIGIN` with your Firebase Hosting URL for production security.
+- For development, you can omit `CORS_ORIGIN` to allow all origins (*).
 
 ### 3. Update Firebase Configuration
 
@@ -60,7 +68,7 @@ firebase deploy --only hosting
 
 ## Environment Variables
 
-The backend host is configured via the `BACKEND_HOST` environment variable in Cloud Run:
+The backend host and CORS settings are configured via environment variables in Cloud Run:
 
 - **Production**: Set via `gcloud run deploy` command (see above)
 - **Local Development**: Create a `.env` file in `cloud-run-proxy/` directory
@@ -68,7 +76,13 @@ The backend host is configured via the `BACKEND_HOST` environment variable in Cl
 Example `.env` file:
 ```
 BACKEND_HOST=media.semibit.in
+CORS_ORIGIN=http://localhost:5000
 ```
+
+### Security Notes
+
+- `BACKEND_HOST`: The actual backend server (e.g., media.semibit.in)
+- `CORS_ORIGIN`: Restricts which domains can make requests. Set to your Firebase Hosting URL in production (e.g., `https://your-project.web.app`). Defaults to `*` (all origins) if not set.
 
 ## Local Development
 
