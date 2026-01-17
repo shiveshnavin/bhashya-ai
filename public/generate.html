@@ -1,14 +1,38 @@
 <!DOCTYPE html>
 
-<html class="dark" lang="en"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Video Generation Progress | ReelAI</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<script id="tailwind-config">
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Video Generation Progress | ReelAI</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAf0qWODcuFljpgCt56WEY-fo-fsqByKF8",
+            authDomain: "bhashya-ai.firebaseapp.com",
+            projectId: "bhashya-ai",
+            storageBucket: "bhashya-ai.firebasestorage.app",
+            messagingSenderId: "525738664258",
+            appId: "1:525738664258:web:fcd30efa7b433af364a8db",
+            measurementId: "G-B25TV25F1X"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+    </script>
+    <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
             theme: {
@@ -33,13 +57,15 @@
             },
         }
     </script>
-<style>
+    <style>
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
+
         .fill-icon {
             font-variation-settings: 'FILL' 1;
         }
+
         /* Custom scanline effect for preview placeholder */
         .scanline {
             background: linear-gradient(to bottom, rgba(18, 16, 16, 0) 50%, rgba(0, 194, 194, 0.05) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
@@ -47,181 +73,235 @@
         }
     </style>
 </head>
+
 <body class="bg-background-light dark:bg-background-dark font-display text-white">
-<!-- TopNavBar -->
-<header class="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-border-dark px-6 lg:px-20 py-4">
-<div class="max-w-7xl mx-auto flex items-center justify-between">
-<div class="flex items-center gap-3">
-<div class="size-8 bg-primary rounded flex items-center justify-center text-background-dark">
-<span class="material-symbols-outlined font-bold">movie_filter</span>
-</div>
-<h2 class="text-xl font-bold tracking-tight dark:text-white text-background-dark">ReelAI</h2>
-</div>
-<nav class="hidden md:flex items-center gap-10">
-<a class="text-sm font-medium opacity-70 hover:opacity-100 transition-opacity dark:text-white text-background-dark" href="#">Dashboard</a>
-<a class="text-sm font-medium opacity-70 hover:opacity-100 transition-opacity dark:text-white text-background-dark" href="#">Templates</a>
-<a class="text-sm font-medium opacity-70 hover:opacity-100 transition-opacity dark:text-white text-background-dark" href="#">Library</a>
-</nav>
-<div class="flex items-center gap-4">
-<button class="bg-primary/10 border border-primary/20 text-primary px-4 py-2 rounded-lg text-sm font-bold hover:bg-primary/20 transition-all">
+    <!-- TopNavBar -->
+    <header
+        class="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-border-dark px-6 lg:px-20 py-4">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="size-8 bg-primary rounded flex items-center justify-center text-background-dark">
+                    <span class="material-symbols-outlined font-bold">movie_filter</span>
+                </div>
+                <h2 class="text-xl font-bold tracking-tight dark:text-white text-background-dark">ReelAI</h2>
+            </div>
+            <nav class="hidden md:flex items-center gap-10">
+                <a class="text-sm font-medium opacity-70 hover:opacity-100 transition-opacity dark:text-white text-background-dark"
+                    href="#">Dashboard</a>
+                <a class="text-sm font-medium opacity-70 hover:opacity-100 transition-opacity dark:text-white text-background-dark"
+                    href="#">Templates</a>
+                <a class="text-sm font-medium opacity-70 hover:opacity-100 transition-opacity dark:text-white text-background-dark"
+                    href="#">Library</a>
+            </nav>
+            <div class="flex items-center gap-4">
+                <button
+                    class="bg-primary/10 border border-primary/20 text-primary px-4 py-2 rounded-lg text-sm font-bold hover:bg-primary/20 transition-all">
                     Upgrade
                 </button>
-<div class="size-10 rounded-full border border-border-dark bg-cover bg-center" data-alt="User profile avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAvDGjZIa-7FzaNHqw0wNjp7k0-h993okotqtaIESFFsKDQJcIm4fH3cjNBhTSvuEwptjnD6XcMSotFQm5Ewwh6ItkG8bOvOTtYXkwQOK-_r_-PZqVveMtH6-iUBCsB82fsZpd_WlKjquf1evcGS70Xz0Fhquv5WfiaOwLQ0avEQESEwF_escjq-RgIi20ogLlQMmJ5ijHYfP5IprRKawzYpYwO0Rln3ndI2LZ0zgVLg8A-ucWpCA4jG7phg3s6rUQFPu_XgqzXidGc')"></div>
-</div>
-</div>
-</header>
-<main class="max-w-6xl mx-auto px-6 py-10">
-<!-- PageHeading -->
-<div class="mb-10">
-<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
-<div>
-<h1 class="text-4xl md:text-5xl font-black tracking-tighter mb-2">Generating Your Reel</h1>
-<p class="text-[#9abcbc] text-lg">Project: <span class="text-primary">Neon Cyberpunk Tokyo Tour</span></p>
-</div>
-<div class="flex gap-2">
-<a href="preview.html" class="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm hover:bg-white/10 transition-colors">
-<span class="material-symbols-outlined text-sm">close</span>
+                <div class="size-10 rounded-full border border-border-dark bg-cover bg-center"
+                    data-alt="User profile avatar"
+                    style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAvDGjZIa-7FzaNHqw0wNjp7k0-h993okotqtaIESFFsKDQJcIm4fH3cjNBhTSvuEwptjnD6XcMSotFQm5Ewwh6ItkG8bOvOTtYXkwQOK-_r_-PZqVveMtH6-iUBCsB82fsZpd_WlKjquf1evcGS70Xz0Fhquv5WfiaOwLQ0avEQESEwF_escjq-RgIi20ogLlQMmJ5ijHYfP5IprRKawzYpYwO0Rln3ndI2LZ0zgVLg8A-ucWpCA4jG7phg3s6rUQFPu_XgqzXidGc')">
+                </div>
+            </div>
+        </div>
+    </header>
+    <main class="max-w-6xl mx-auto px-6 py-10">
+        <!-- PageHeading -->
+        <div class="mb-10">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h1 class="text-4xl md:text-5xl font-black tracking-tighter mb-2">Generating Your Reel</h1>
+                    <p class="text-[#9abcbc] text-lg">Project: <span class="text-primary">Neon Cyberpunk Tokyo
+                            Tour</span></p>
+                </div>
+                <div class="flex gap-2">
+                    <a href="preview.html"
+                        class="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm hover:bg-white/10 transition-colors">
+                        <span class="material-symbols-outlined text-sm">close</span>
                         Cancel Generation
                     </a>
-</div>
-</div>
-</div>
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-<!-- Left Column: Inputs & Timeline -->
-<div class="lg:col-span-8 flex flex-col gap-6">
-<!-- Input Summary Card (Read-only) -->
-<div class="bg-surface-dark border border-border-dark rounded-xl p-6">
-<div class="flex items-start gap-4">
-<div class="hidden sm:block w-32 aspect-[9/16] bg-background-dark border border-border-dark rounded-lg overflow-hidden relative">
-<div class="absolute inset-0 scanline opacity-30"></div>
-<div class="w-full h-full bg-gradient-to-br from-primary/10 to-transparent flex items-center justify-center">
-<span class="material-symbols-outlined text-primary/40 text-4xl">video_settings</span>
-</div>
-</div>
-<div class="flex-1">
-<h3 class="text-[#9abcbc] text-xs font-bold uppercase tracking-widest mb-2">Prompt Configuration</h3>
-<p class="text-white text-lg font-medium leading-relaxed mb-4">
-                                "Cinematic street-level tour of futuristic Shibuya at night. Neon signs reflecting on wet asphalt, 4k, hyper-realistic, dynamic drone shots."
+                </div>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left Column: Inputs & Timeline -->
+            <div class="lg:col-span-8 flex flex-col gap-6">
+                <!-- Input Summary Card (Read-only) -->
+                <div class="bg-surface-dark border border-border-dark rounded-xl p-6">
+                    <div class="flex items-start gap-4">
+                        <div
+                            class="hidden sm:block w-32 aspect-[9/16] bg-background-dark border border-border-dark rounded-lg overflow-hidden relative">
+                            <div class="absolute inset-0 scanline opacity-30"></div>
+                            <div
+                                class="w-full h-full bg-gradient-to-br from-primary/10 to-transparent flex items-center justify-center">
+                                <span class="material-symbols-outlined text-primary/40 text-4xl">video_settings</span>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-[#9abcbc] text-xs font-bold uppercase tracking-widest mb-2">Prompt
+                                Configuration</h3>
+                            <p class="text-white text-lg font-medium leading-relaxed mb-4">
+                                "Cinematic street-level tour of futuristic Shibuya at night. Neon signs reflecting on
+                                wet asphalt, 4k, hyper-realistic, dynamic drone shots."
                             </p>
-<div class="flex flex-wrap gap-2">
-<span class="px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full border border-primary/20">9:16 Vertical</span>
-<span class="px-3 py-1 bg-white/5 text-white/60 text-xs font-bold rounded-full border border-white/10">30 Seconds</span>
-<span class="px-3 py-1 bg-white/5 text-white/60 text-xs font-bold rounded-full border border-white/10">Voice: Male Tech</span>
-<span class="px-3 py-1 bg-white/5 text-white/60 text-xs font-bold rounded-full border border-white/10">Music: Lo-Fi Synth</span>
-</div>
-</div>
-</div>
-</div>
-<!-- Global Progress Section -->
-<div class="bg-surface-dark border border-border-dark rounded-xl p-8">
-<div class="flex items-baseline justify-between mb-4">
-<h3 class="text-xl font-bold">Overall Progress</h3>
-<div class="text-5xl font-black text-primary">64%</div>
-</div>
-<div class="relative w-full h-4 bg-background-dark rounded-full overflow-hidden border border-white/5">
-<div class="absolute top-0 left-0 h-full bg-primary rounded-full transition-all duration-500 shadow-[0_0_20px_rgba(0,194,194,0.4)]" style="width: 64%;"></div>
-</div>
-<p class="mt-4 text-[#9abcbc] text-sm flex items-center gap-2">
-<span class="size-2 rounded-full bg-primary animate-pulse"></span>
+                            <div class="flex flex-wrap gap-2">
+                                <span
+                                    class="px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full border border-primary/20">9:16
+                                    Vertical</span>
+                                <span
+                                    class="px-3 py-1 bg-white/5 text-white/60 text-xs font-bold rounded-full border border-white/10">30
+                                    Seconds</span>
+                                <span
+                                    class="px-3 py-1 bg-white/5 text-white/60 text-xs font-bold rounded-full border border-white/10">Voice:
+                                    Male Tech</span>
+                                <span
+                                    class="px-3 py-1 bg-white/5 text-white/60 text-xs font-bold rounded-full border border-white/10">Music:
+                                    Lo-Fi Synth</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Global Progress Section -->
+                <div class="bg-surface-dark border border-border-dark rounded-xl p-8">
+                    <div class="flex items-baseline justify-between mb-4">
+                        <h3 class="text-xl font-bold">Overall Progress</h3>
+                        <div class="text-5xl font-black text-primary">64%</div>
+                    </div>
+                    <div
+                        class="relative w-full h-4 bg-background-dark rounded-full overflow-hidden border border-white/5">
+                        <div class="absolute top-0 left-0 h-full bg-primary rounded-full transition-all duration-500 shadow-[0_0_20px_rgba(0,194,194,0.4)]"
+                            style="width: 64%;"></div>
+                    </div>
+                    <p class="mt-4 text-[#9abcbc] text-sm flex items-center gap-2">
+                        <span class="size-2 rounded-full bg-primary animate-pulse"></span>
                         Synthesizing high-fidelity visual assets based on script frames...
                     </p>
-</div>
-<!-- Node List / Timeline -->
-<div class="bg-surface-dark border border-border-dark rounded-xl p-6">
-<h3 class="text-[#9abcbc] text-xs font-bold uppercase tracking-widest mb-6 px-4">Generation Pipeline</h3>
-<div class="grid grid-cols-[48px_1fr] gap-x-2">
-<!-- Step 1: Completed -->
-<div class="flex flex-col items-center">
-<div class="size-8 rounded-full bg-primary flex items-center justify-center text-background-dark">
-<span class="material-symbols-outlined text-sm font-bold">check</span>
-</div>
-<div class="w-1 bg-primary h-12 grow"></div>
-</div>
-<div class="flex flex-col pb-6">
-<p class="text-white text-lg font-bold leading-none">Scripting Completed</p>
-<p class="text-[#9abcbc] text-sm mt-1">AI Storyboard and voiceover script finalized.</p>
-</div>
-<!-- Step 2: Completed -->
-<div class="flex flex-col items-center">
-<div class="size-8 rounded-full bg-primary flex items-center justify-center text-background-dark">
-<span class="material-symbols-outlined text-sm font-bold">check</span>
-</div>
-<div class="w-1 bg-primary h-12 grow"></div>
-</div>
-<div class="flex flex-col pb-6">
-<p class="text-white text-lg font-bold leading-none">Voiceover Generated</p>
-<p class="text-[#9abcbc] text-sm mt-1">Realistic male narration synthesized with background mix.</p>
-</div>
-<!-- Step 3: In Progress -->
-<div class="flex flex-col items-center">
-<div class="size-8 rounded-full bg-background-dark border-2 border-primary flex items-center justify-center text-primary">
-<span class="material-symbols-outlined text-xl animate-spin">refresh</span>
-</div>
-<div class="w-1 bg-border-dark h-12 grow"></div>
-</div>
-<div class="flex flex-col pb-6">
-<p class="text-primary text-lg font-bold leading-none">Asset Generation</p>
-<p class="text-[#9abcbc] text-sm mt-1">Rendering 480 frames of generative Tokyo cityscapes...</p>
-</div>
-<!-- Step 4: Pending -->
-<div class="flex flex-col items-center">
-<div class="size-8 rounded-full bg-background-dark border-2 border-border-dark flex items-center justify-center text-white/20">
-<span class="material-symbols-outlined text-sm">schedule</span>
-</div>
-<div class="w-1 bg-border-dark h-12 grow"></div>
-</div>
-<div class="flex flex-col pb-6">
-<p class="text-white/40 text-lg font-bold leading-none">Video Synthesis</p>
-<p class="text-white/20 text-sm mt-1">Merging layers, applying transitions and FX.</p>
-</div>
-<!-- Step 5: Pending -->
-<div class="flex flex-col items-center">
-<div class="size-8 rounded-full bg-background-dark border-2 border-border-dark flex items-center justify-center text-white/20">
-<span class="material-symbols-outlined text-sm">download</span>
-</div>
-</div>
-<div class="flex flex-col">
-<p class="text-white/40 text-lg font-bold leading-none">Final Export</p>
-<p class="text-white/20 text-sm mt-1">Ready for download and Instagram posting.</p>
-</div>
-</div>
-</div>
-</div>
-<!-- Right Column: Live Preview Mockup -->
-<div class="lg:col-span-4">
-<div class="sticky top-28">
-<div class="relative mx-auto w-full max-w-[280px] aspect-[9/19] bg-background-dark rounded-[3rem] border-[8px] border-surface-dark shadow-2xl overflow-hidden">
-<!-- Screen Content -->
-<div class="absolute inset-0 bg-cover bg-center flex items-center justify-center" data-alt="Abstract blurry neon cyberpunk background" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBJOc1ofHGUym7otQNlKfVIkZBYGuaZloLkkuVeHRjn-m6cvaa2qIvI9Lhz4vMw93s0_bPZ_IGZlDms7btrqskcukDxQl9hohYietgh5cdOxax5d8Pt2vnvs_YDwJXmfzM7aiNN4ch1RwM5r9ivDxnkgg5UZBAin9aT49hOLW3aV2vtDihBwommQa4nCo9rz-JD2cFVpTf1xln1MV8Fj_TdJUG7xrrd-eSL_OGWV8N0A8MiDwfouvlCXIHwF7CCgFpIwC0FAbaQMFOh')">
-<div class="absolute inset-0 scanline opacity-40"></div>
-<div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
-<div class="relative z-10 flex flex-col items-center text-center p-6">
-<div class="size-16 rounded-full border-4 border-primary/30 border-t-primary animate-spin mb-4"></div>
-<h4 class="text-primary font-bold tracking-widest uppercase text-xs">Visualizing</h4>
-<p class="text-white/70 text-[10px] mt-2 leading-tight">PREVIEW UNAVAILABLE DURING <br/> HIGH-DENSITY RENDERING</p>
-</div>
-<!-- Mock UI Overlays -->
-<div class="absolute bottom-10 right-4 flex flex-col gap-4 items-center">
-<div class="size-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center"><span class="material-symbols-outlined text-xs">favorite</span></div>
-<div class="size-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center"><span class="material-symbols-outlined text-xs">chat_bubble</span></div>
-<div class="size-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center"><span class="material-symbols-outlined text-xs">share</span></div>
-</div>
-<div class="absolute bottom-10 left-4 text-[10px] text-white/80">
-<p class="font-bold">@reel_ai_bot</p>
-<p class="opacity-70 mt-1 max-w-[120px]">Generating immersive Tokyo views...</p>
-</div>
-</div>
-<!-- Phone Notch/Hardware -->
-<div class="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-surface-dark rounded-b-2xl z-20"></div>
-</div>
-<div class="mt-6 text-center">
-<p class="text-xs text-[#9abcbc] italic">Estimate time remaining: ~2 minutes</p>
-</div>
-</div>
-</div>
-</div>
-</main>
-<footer class="mt-20 border-t border-border-dark py-10 text-center opacity-40">
-<p class="text-sm">© 2024 ReelAI Generator. Powered by Advanced Neural Rendering.</p>
-</footer>
-</body></html>
+                </div>
+                <!-- Node List / Timeline -->
+                <div class="bg-surface-dark border border-border-dark rounded-xl p-6">
+                    <h3 class="text-[#9abcbc] text-xs font-bold uppercase tracking-widest mb-6 px-4">Generation Pipeline
+                    </h3>
+                    <div class="grid grid-cols-[48px_1fr] gap-x-2">
+                        <!-- Step 1: Completed -->
+                        <div class="flex flex-col items-center">
+                            <div
+                                class="size-8 rounded-full bg-primary flex items-center justify-center text-background-dark">
+                                <span class="material-symbols-outlined text-sm font-bold">check</span>
+                            </div>
+                            <div class="w-1 bg-primary h-12 grow"></div>
+                        </div>
+                        <div class="flex flex-col pb-6">
+                            <p class="text-white text-lg font-bold leading-none">Scripting Completed</p>
+                            <p class="text-[#9abcbc] text-sm mt-1">AI Storyboard and voiceover script finalized.</p>
+                        </div>
+                        <!-- Step 2: Completed -->
+                        <div class="flex flex-col items-center">
+                            <div
+                                class="size-8 rounded-full bg-primary flex items-center justify-center text-background-dark">
+                                <span class="material-symbols-outlined text-sm font-bold">check</span>
+                            </div>
+                            <div class="w-1 bg-primary h-12 grow"></div>
+                        </div>
+                        <div class="flex flex-col pb-6">
+                            <p class="text-white text-lg font-bold leading-none">Voiceover Generated</p>
+                            <p class="text-[#9abcbc] text-sm mt-1">Realistic male narration synthesized with background
+                                mix.</p>
+                        </div>
+                        <!-- Step 3: In Progress -->
+                        <div class="flex flex-col items-center">
+                            <div
+                                class="size-8 rounded-full bg-background-dark border-2 border-primary flex items-center justify-center text-primary">
+                                <span class="material-symbols-outlined text-xl animate-spin">refresh</span>
+                            </div>
+                            <div class="w-1 bg-border-dark h-12 grow"></div>
+                        </div>
+                        <div class="flex flex-col pb-6">
+                            <p class="text-primary text-lg font-bold leading-none">Asset Generation</p>
+                            <p class="text-[#9abcbc] text-sm mt-1">Rendering 480 frames of generative Tokyo
+                                cityscapes...</p>
+                        </div>
+                        <!-- Step 4: Pending -->
+                        <div class="flex flex-col items-center">
+                            <div
+                                class="size-8 rounded-full bg-background-dark border-2 border-border-dark flex items-center justify-center text-white/20">
+                                <span class="material-symbols-outlined text-sm">schedule</span>
+                            </div>
+                            <div class="w-1 bg-border-dark h-12 grow"></div>
+                        </div>
+                        <div class="flex flex-col pb-6">
+                            <p class="text-white/40 text-lg font-bold leading-none">Video Synthesis</p>
+                            <p class="text-white/20 text-sm mt-1">Merging layers, applying transitions and FX.</p>
+                        </div>
+                        <!-- Step 5: Pending -->
+                        <div class="flex flex-col items-center">
+                            <div
+                                class="size-8 rounded-full bg-background-dark border-2 border-border-dark flex items-center justify-center text-white/20">
+                                <span class="material-symbols-outlined text-sm">download</span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col">
+                            <p class="text-white/40 text-lg font-bold leading-none">Final Export</p>
+                            <p class="text-white/20 text-sm mt-1">Ready for download and Instagram posting.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Right Column: Live Preview Mockup -->
+            <div class="lg:col-span-4">
+                <div class="sticky top-28">
+                    <div
+                        class="relative mx-auto w-full max-w-[280px] aspect-[9/19] bg-background-dark rounded-[3rem] border-[8px] border-surface-dark shadow-2xl overflow-hidden">
+                        <!-- Screen Content -->
+                        <div class="absolute inset-0 bg-cover bg-center flex items-center justify-center"
+                            data-alt="Abstract blurry neon cyberpunk background"
+                            style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBJOc1ofHGUym7otQNlKfVIkZBYGuaZloLkkuVeHRjn-m6cvaa2qIvI9Lhz4vMw93s0_bPZ_IGZlDms7btrqskcukDxQl9hohYietgh5cdOxax5d8Pt2vnvs_YDwJXmfzM7aiNN4ch1RwM5r9ivDxnkgg5UZBAin9aT49hOLW3aV2vtDihBwommQa4nCo9rz-JD2cFVpTf1xln1MV8Fj_TdJUG7xrrd-eSL_OGWV8N0A8MiDwfouvlCXIHwF7CCgFpIwC0FAbaQMFOh')">
+                            <div class="absolute inset-0 scanline opacity-40"></div>
+                            <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+                            <div class="relative z-10 flex flex-col items-center text-center p-6">
+                                <div
+                                    class="size-16 rounded-full border-4 border-primary/30 border-t-primary animate-spin mb-4">
+                                </div>
+                                <h4 class="text-primary font-bold tracking-widest uppercase text-xs">Visualizing</h4>
+                                <p class="text-white/70 text-[10px] mt-2 leading-tight">PREVIEW UNAVAILABLE DURING
+                                    <br /> HIGH-DENSITY RENDERING
+                                </p>
+                            </div>
+                            <!-- Mock UI Overlays -->
+                            <div class="absolute bottom-10 right-4 flex flex-col gap-4 items-center">
+                                <div
+                                    class="size-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-xs">favorite</span>
+                                </div>
+                                <div
+                                    class="size-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-xs">chat_bubble</span>
+                                </div>
+                                <div
+                                    class="size-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-xs">share</span>
+                                </div>
+                            </div>
+                            <div class="absolute bottom-10 left-4 text-[10px] text-white/80">
+                                <p class="font-bold">@reel_ai_bot</p>
+                                <p class="opacity-70 mt-1 max-w-[120px]">Generating immersive Tokyo views...</p>
+                            </div>
+                        </div>
+                        <!-- Phone Notch/Hardware -->
+                        <div
+                            class="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-surface-dark rounded-b-2xl z-20">
+                        </div>
+                    </div>
+                    <div class="mt-6 text-center">
+                        <p class="text-xs text-[#9abcbc] italic">Estimate time remaining: ~2 minutes</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <footer class="mt-20 border-t border-border-dark py-10 text-center opacity-40">
+        <p class="text-sm">© 2024 ReelAI Generator. Powered by Advanced Neural Rendering.</p>
+    </footer>
+    <script src="index.js"></script>
+</body>
+
+</html>

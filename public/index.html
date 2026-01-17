@@ -1,14 +1,38 @@
 <!DOCTYPE html>
 
-<html class="dark" lang="en"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Create AI Reel Video - AI Reel Lab</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<script id="tailwind-config">
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Create AI Reel Video - AI Reel Lab</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAf0qWODcuFljpgCt56WEY-fo-fsqByKF8",
+            authDomain: "bhashya-ai.firebaseapp.com",
+            projectId: "bhashya-ai",
+            storageBucket: "bhashya-ai.firebasestorage.app",
+            messagingSenderId: "525738664258",
+            appId: "1:525738664258:web:fcd30efa7b433af364a8db",
+            measurementId: "G-B25TV25F1X"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+    </script>
+    <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
             theme: {
@@ -33,243 +57,332 @@
             },
         }
     </script>
-<style>
+    <style>
         body {
             font-family: 'Space Grotesk', sans-serif;
         }
+
         .custom-scrollbar::-webkit-scrollbar {
             width: 6px;
             height: 6px;
         }
+
         .custom-scrollbar::-webkit-scrollbar-thumb {
             background: #2A2D32;
             border-radius: 10px;
         }
+
         .glass-panel {
             background: rgba(27, 29, 33, 0.7);
             backdrop-filter: blur(12px);
         }
     </style>
 </head>
+
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
-<!-- Top Navigation Bar -->
-<header class="sticky top-0 z-50 border-b border-border-muted bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
-<div class="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between">
-<div class="flex items-center gap-3">
-<div class="bg-primary p-1.5 rounded-lg flex items-center justify-center">
-<span class="material-symbols-outlined text-background-dark font-bold text-xl">movie_filter</span>
-</div>
-<h1 class="text-xl font-bold tracking-tight">AI Reel Lab</h1>
-</div>
-<div class="flex items-center gap-6">
-<nav class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-500 dark:text-slate-400">
-<a class="hover:text-primary transition-colors" href="#">Library</a>
-<a class="text-primary" href="#">Create</a>
-<a class="hover:text-primary transition-colors" href="#">Templates</a>
-</nav>
-<div class="h-6 w-px bg-border-muted mx-2"></div>
-<div class="flex items-center gap-3">
-<button class="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-surface transition-colors">
-<span class="material-symbols-outlined text-xl">notifications</span>
-</button>
-<div class="flex items-center gap-2 pl-2">
-<div class="w-8 h-8 rounded-full bg-cover bg-center border border-border-muted" data-alt="User avatar icon" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDp9ETY-Srr9ZGBzYkpz_Gatuz3bLabzczGzJUIRlaoMcGhLGdtdn6m_g9b1SktdhuLI-ohDFseGO2LmUk0IBSiaVBAptW0BXMFiQZQwJD8cXpkLytMGBe94wnztoAMw9811Gc9R8ZLYtR_8FYyZcu655Z7Kt8C-CbK7zfgAhylGMZ1IxTR47w9GytUhdcYFQwS42f6BoHizIsABAQhk92bryrcgAWUJk0rlJg2eJkvtmQxMa5gSkJFWemhfCWdnj5LthaumXqygwNQ')"></div>
-<span class="text-xs font-semibold hidden sm:inline">240 Credits</span>
-</div>
-</div>
-</div>
-</div>
-</header>
-<main class="max-w-[1000px] mx-auto px-6 py-10">
-<!-- Header Text -->
-<div class="mb-8">
-<h2 class="text-4xl font-bold tracking-tight mb-2">Craft Your Script</h2>
-<p class="text-slate-500 dark:text-slate-400">Describe the visual and narrative flow of your reel. Be as detailed as possible.</p>
-</div>
-<!-- Central Prompt Area -->
-<section class="mb-10">
-<div class="relative group">
-<div class="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition duration-500"></div>
-<div class="relative bg-white dark:bg-surface border border-slate-200 dark:border-border-muted rounded-xl p-4 shadow-xl">
-<div class="flex gap-4">
-<div class="flex-shrink-0">
-<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-<span class="material-symbols-outlined text-primary">auto_awesome</span>
-</div>
-</div>
-<div class="flex-1">
-<textarea class="w-full bg-transparent border-none focus:ring-0 text-lg min-h-[160px] resize-none placeholder:text-slate-400 dark:placeholder:text-slate-600 font-display" placeholder="Describe the scene... e.g., 'A cinematic drone shot of a futuristic Tokyo with neon lights reflecting on wet pavement, transitioning into a close-up of a digital artist at work...'"></textarea>
-<div class="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-border-muted">
-<div class="flex gap-2">
-<button class="p-2 text-slate-400 hover:text-primary transition-colors" title="Attach Image Reference">
-<span class="material-symbols-outlined">image</span>
-</button>
-<button class="p-2 text-slate-400 hover:text-primary transition-colors" title="Voice to Text">
-<span class="material-symbols-outlined">mic</span>
-</button>
-<button class="p-2 text-slate-400 hover:text-primary transition-colors" title="AI Refine Prompt">
-<span class="material-symbols-outlined">magic_button</span>
-</button>
-</div>
-<div class="text-xs text-slate-500 font-medium">0 / 2000 characters</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</section>
-<!-- Configuration Grid -->
-<section class="mb-12">
-<div class="flex items-center gap-2 mb-6">
-<span class="material-symbols-outlined text-primary text-xl">settings_input_component</span>
-<h3 class="text-xl font-bold">Configure Settings</h3>
-</div>
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-<!-- Orientation -->
-<div class="bg-white dark:bg-surface p-5 rounded-xl border border-slate-200 dark:border-border-muted">
-<label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Orientation</label>
-<div class="flex gap-2">
-<button class="flex-1 flex flex-col items-center gap-2 py-3 rounded-lg border-2 border-primary bg-primary/10 text-primary">
-<span class="material-symbols-outlined">stay_current_portrait</span>
-<span class="text-sm font-semibold">Vertical</span>
-</button>
-<button class="flex-1 flex flex-col items-center gap-2 py-3 rounded-lg border-2 border-transparent bg-slate-100 dark:bg-background-dark hover:bg-slate-200 dark:hover:bg-border-muted transition-all">
-<span class="material-symbols-outlined">stay_current_landscape</span>
-<span class="text-sm font-semibold text-slate-500">Horizontal</span>
-</button>
-</div>
-</div>
-<!-- Category -->
-<div class="bg-white dark:bg-surface p-5 rounded-xl border border-slate-200 dark:border-border-muted">
-<label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Content Category</label>
-<select class="w-full bg-slate-100 dark:bg-background-dark border-none rounded-lg text-sm font-medium py-3 focus:ring-1 focus:ring-primary">
-<option>General / Cinematic</option>
-<option>Mythological</option>
-<option>Sci-Fi / Cyberpunk</option>
-<option>Nature &amp; Travel</option>
-</select>
-</div>
-<!-- Audio Quality -->
-<div class="bg-white dark:bg-surface p-5 rounded-xl border border-slate-200 dark:border-border-muted">
-<div class="flex items-center justify-between mb-4">
-<label class="block text-xs font-bold uppercase tracking-wider text-slate-400">Audio Quality</label>
-<span class="material-symbols-outlined text-slate-500 text-sm cursor-help" title="Neural audio provides high-fidelity synthesis">info</span>
-</div>
-<div class="grid grid-cols-3 gap-2">
-<button class="py-2 text-xs font-bold rounded bg-slate-100 dark:bg-background-dark border border-transparent">Low</button>
-<button class="py-2 text-xs font-bold rounded bg-slate-100 dark:bg-background-dark border border-transparent">High</button>
-<button class="py-2 text-xs font-bold rounded bg-primary/20 border border-primary/50 text-primary">Neural</button>
-</div>
-</div>
-<!-- Duration -->
-<div class="bg-white dark:bg-surface p-5 rounded-xl border border-slate-200 dark:border-border-muted">
-<label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Duration</label>
-<div class="flex gap-3">
-<button class="flex-1 py-2 text-sm font-bold rounded-lg bg-primary text-background-dark">1 Min</button>
-<button class="flex-1 py-2 text-sm font-bold rounded-lg bg-slate-100 dark:bg-background-dark text-slate-500">2 Min</button>
-</div>
-</div>
-<!-- Language -->
-<div class="bg-white dark:bg-surface p-5 rounded-xl border border-slate-200 dark:border-border-muted">
-<label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Output Language</label>
-<div class="flex items-center gap-2 bg-slate-100 dark:bg-background-dark px-3 py-2.5 rounded-lg">
-<span class="material-symbols-outlined text-slate-400">language</span>
-<select class="flex-1 bg-transparent border-none p-0 text-sm font-medium focus:ring-0">
-<option>English (US)</option>
-<option>Hindi</option>
-<option>Spanish</option>
-<option>Japanese</option>
-</select>
-</div>
-</div>
-<!-- Email Input (Mandatory) -->
-<div class="bg-white dark:bg-surface p-5 rounded-xl border border-slate-200 dark:border-border-muted lg:col-span-1">
-<label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Delivery Email *</label>
-<div class="relative">
-<input class="w-full bg-slate-100 dark:bg-background-dark border-none rounded-lg pl-10 py-3 text-sm focus:ring-1 focus:ring-primary" placeholder="alex@design.com" type="email"/>
-<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">mail</span>
-</div>
-</div>
-</div>
-<!-- Generate Action -->
-<div class="mt-10 flex flex-col items-center">
-<a href="generate.html" class="w-full max-w-[400px] bg-primary hover:bg-primary/90 text-background-dark font-bold text-lg py-4 rounded-xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-3 active:scale-[0.98]">
-<span class="material-symbols-outlined font-bold">rocket_launch</span>
+    <!-- Top Navigation Bar -->
+    <header
+        class="sticky top-0 z-50 border-b border-border-muted bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
+        <div class="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-primary p-1.5 rounded-lg flex items-center justify-center">
+                    <span class="material-symbols-outlined text-background-dark font-bold text-xl">movie_filter</span>
+                </div>
+                <h1 class="text-xl font-bold tracking-tight">AI Reel Lab</h1>
+            </div>
+            <div class="flex items-center gap-6">
+                <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-500 dark:text-slate-400">
+                    <a class="hover:text-primary transition-colors" href="#">Library</a>
+                    <a class="text-primary" href="#">Create</a>
+                    <a class="hover:text-primary transition-colors" href="#">Templates</a>
+                </nav>
+                <div class="h-6 w-px bg-border-muted mx-2"></div>
+                <div class="flex items-center gap-3">
+                    <button class="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-surface transition-colors">
+                        <span class="material-symbols-outlined text-xl">notifications</span>
+                    </button>
+                    <div class="flex items-center gap-2 pl-2">
+                        <div class="w-8 h-8 rounded-full bg-cover bg-center border border-border-muted"
+                            data-alt="User avatar icon"
+                            style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDp9ETY-Srr9ZGBzYkpz_Gatuz3bLabzczGzJUIRlaoMcGhLGdtdn6m_g9b1SktdhuLI-ohDFseGO2LmUk0IBSiaVBAptW0BXMFiQZQwJD8cXpkLytMGBe94wnztoAMw9811Gc9R8ZLYtR_8FYyZcu655Z7Kt8C-CbK7zfgAhylGMZ1IxTR47w9GytUhdcYFQwS42f6BoHizIsABAQhk92bryrcgAWUJk0rlJg2eJkvtmQxMa5gSkJFWemhfCWdnj5LthaumXqygwNQ')">
+                        </div>
+                        <span class="text-xs font-semibold hidden sm:inline">240 Credits</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <main class="max-w-[1000px] mx-auto px-6 py-10">
+        <!-- Header Text -->
+        <div class="mb-8">
+            <h2 class="text-4xl font-bold tracking-tight mb-2">Craft Your Script</h2>
+            <p class="text-slate-500 dark:text-slate-400">Describe the visual and narrative flow of your reel. Be as
+                detailed as possible.</p>
+        </div>
+        <!-- Central Prompt Area -->
+        <section class="mb-10">
+            <div class="relative group">
+                <div
+                    class="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition duration-500">
+                </div>
+                <div
+                    class="relative bg-white dark:bg-surface border border-slate-200 dark:border-border-muted rounded-xl p-4 shadow-xl">
+                    <div class="flex gap-4">
+                        <div class="flex-shrink-0">
+                            <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-primary">auto_awesome</span>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <textarea
+                                class="w-full bg-transparent border-none focus:ring-0 text-lg min-h-[160px] resize-none placeholder:text-slate-400 dark:placeholder:text-slate-600 font-display"
+                                placeholder="Describe the scene... e.g., 'A cinematic drone shot of a futuristic Tokyo with neon lights reflecting on wet pavement, transitioning into a close-up of a digital artist at work...'"></textarea>
+                            <div
+                                class="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-border-muted">
+                                <div class="flex gap-2">
+                                    <button class="p-2 text-slate-400 hover:text-primary transition-colors"
+                                        title="Attach Image Reference">
+                                        <span class="material-symbols-outlined">image</span>
+                                    </button>
+                                    <button class="p-2 text-slate-400 hover:text-primary transition-colors"
+                                        title="Voice to Text">
+                                        <span class="material-symbols-outlined">mic</span>
+                                    </button>
+                                    <button class="p-2 text-slate-400 hover:text-primary transition-colors"
+                                        title="AI Refine Prompt">
+                                        <span class="material-symbols-outlined">magic_button</span>
+                                    </button>
+                                </div>
+                                <div class="text-xs text-slate-500 font-medium">0 / 2000 characters</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- Configuration Grid -->
+        <section class="mb-12">
+            <div class="flex items-center gap-2 mb-6">
+                <span class="material-symbols-outlined text-primary text-xl">settings_input_component</span>
+                <h3 class="text-xl font-bold">Configure Settings</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Email Input (Mandatory) - moved to top -->
+                <div
+                    class="bg-white dark:bg-surface p-5 rounded-xl border border-slate-200 dark:border-border-muted lg:col-span-1">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Delivery Email
+                        *</label>
+                    <div class="relative">
+                        <input
+                            class="w-full bg-slate-100 dark:bg-background-dark border-none rounded-lg pl-10 py-3 text-sm focus:ring-1 focus:ring-primary"
+                            placeholder="alex@design.com" type="email" />
+                        <span
+                            class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">mail</span>
+                    </div>
+                </div>
+                <!-- Orientation -->
+                <div class="bg-white dark:bg-surface p-5 rounded-xl border border-slate-200 dark:border-border-muted">
+                    <label
+                        class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Orientation</label>
+                    <div class="flex gap-2">
+                        <button data-orientation="portrait"
+                            class="flex-1 flex flex-col items-center gap-2 py-3 rounded-lg border-2 border-primary bg-primary/10 text-primary">
+                            <span class="material-symbols-outlined">stay_current_portrait</span>
+                            <span class="text-sm font-semibold">Vertical</span>
+                        </button>
+                        <button data-orientation="landscape"
+                            class="flex-1 flex flex-col items-center gap-2 py-3 rounded-lg border-2 border-transparent bg-slate-100 dark:bg-background-dark hover:bg-slate-200 dark:hover:bg-border-muted transition-all">
+                            <span class="material-symbols-outlined">stay_current_landscape</span>
+                            <span class="text-sm font-semibold text-slate-500">Horizontal</span>
+                        </button>
+                    </div>
+                </div>
+                <!-- Resolution (NEW) -->
+                <div class="bg-white dark:bg-surface p-5 rounded-xl border border-slate-200 dark:border-border-muted">
+                    <label
+                        class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Resolution</label>
+                    <div class="flex gap-2">
+                        <button data-resolution="360p"
+                            class="flex-1 py-2 text-xs font-bold rounded bg-primary/20 border border-primary/50 text-primary">360p</button>
+                        <button data-resolution="SD"
+                            class="flex-1 py-2 text-xs font-bold rounded bg-slate-100 dark:bg-background-dark border border-transparent">SD</button>
+                        <button data-resolution="HD"
+                            class="flex-1 py-2 text-xs font-bold rounded bg-slate-100 dark:bg-background-dark border border-transparent">HD</button>
+                    </div>
+                </div>
+                <!-- Category -->
+                <div class="bg-white dark:bg-surface p-5 rounded-xl border border-slate-200 dark:border-border-muted">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Content
+                        Category</label>
+                    <select data-content-category
+                        class="w-full bg-slate-100 dark:bg-background-dark border-none rounded-lg text-sm font-medium py-3 focus:ring-1 focus:ring-primary">
+                        <option>General / Cinematic</option>
+                        <option>Mythological</option>
+                    </select>
+                </div>
+                <!-- Audio Quality -->
+                <div class="bg-white dark:bg-surface p-5 rounded-xl border border-slate-200 dark:border-border-muted">
+                    <div class="flex items-center justify-between mb-4">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">Audio
+                            Quality</label>
+                        <span class="material-symbols-outlined text-slate-500 text-sm cursor-help"
+                            title="Neural audio provides high-fidelity synthesis">info</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button data-speech-quality="low-ai"
+                            class="py-2 text-xs font-bold rounded bg-slate-100 dark:bg-background-dark border border-transparent">Low</button>
+                        <button data-speech-quality="high-ai"
+                            class="py-2 text-xs font-bold rounded bg-slate-100 dark:bg-background-dark border border-transparent">High</button>
+                        <button data-speech-quality="neural"
+                            class="py-2 text-xs font-bold rounded bg-primary/20 border border-primary/50 text-primary">Neural</button>
+                    </div>
+                </div>
+                <!-- Duration -->
+                <div class="bg-white dark:bg-surface p-5 rounded-xl border border-slate-200 dark:border-border-muted">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Duration</label>
+                    <div class="flex gap-3">
+                        <button data-duration="1"
+                            class="flex-1 py-2 text-sm font-bold rounded-lg bg-primary text-background-dark">1
+                            Min</button>
+                        <button data-duration="2"
+                            class="flex-1 py-2 text-sm font-bold rounded-lg bg-slate-100 dark:bg-background-dark text-slate-500">2
+                            Min</button>
+                    </div>
+                </div>
+                <!-- Language -->
+                <div class="bg-white dark:bg-surface p-5 rounded-xl border border-slate-200 dark:border-border-muted">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Output
+                        Language</label>
+                    <div
+                        class="flex items-center gap-2 bg-slate-100 dark:bg-background-dark px-3 py-2.5 rounded-lg language-group">
+                        <span class="material-symbols-outlined text-slate-400">language</span>
+                        <button data-language="english"
+                            class="text-sm font-semibold text-primary bg-transparent px-2 py-1 rounded">English</button>
+                        <button data-language="hindi"
+                            class="text-sm font-semibold text-slate-500 bg-transparent px-2 py-1 rounded">Hindi</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Generate Action -->
+            <div class="mt-10 flex flex-col items-center">
+                <a href="generate.html"
+                    class="w-full max-w-[400px] bg-primary hover:bg-primary/90 text-background-dark font-bold text-lg py-4 rounded-xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-3 active:scale-[0.98]">
+                    <span class="material-symbols-outlined font-bold">rocket_launch</span>
                     Generate Reel
                     <span class="text-sm opacity-60 font-normal ml-2">(-40 Credits)</span>
-</a>
-<p class="mt-4 text-xs text-slate-500">Estimated generation time: 2-4 minutes. We'll email you when it's ready.</p>
-</div>
-</section>
-<!-- Sample Prompts Section -->
-<section class="pt-10 border-t border-border-muted">
-<div class="flex items-center justify-between mb-8">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-primary text-xl">auto_awesome_motion</span>
-<h3 class="text-xl font-bold">Inspired Creations</h3>
-</div>
-<button class="text-primary text-sm font-semibold flex items-center gap-1 hover:underline">
+                </a>
+                <p class="mt-4 text-xs text-slate-500">Estimated generation time: 2-4 minutes. We'll email you when it's
+                    ready.</p>
+            </div>
+        </section>
+        <!-- Sample Prompts Section -->
+        <section class="pt-10 border-t border-border-muted">
+            <div class="flex items-center justify-between mb-8">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-xl">auto_awesome_motion</span>
+                    <h3 class="text-xl font-bold">Inspired Creations</h3>
+                </div>
+                <button class="text-primary text-sm font-semibold flex items-center gap-1 hover:underline">
                     View Gallery
                     <span class="material-symbols-outlined text-sm">arrow_forward</span>
-</button>
-</div>
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-<!-- Sample 1 -->
-<div class="group relative aspect-[9/16] rounded-xl overflow-hidden border border-border-muted bg-surface">
-<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="Futuristic neon city cinematic video preview" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCV4gXecplqeQFPZzQHS0VPwaE9rJNJYbN-VdHL4S9v515sHjJyavfEwSoJUL1eeB9saNMFFvmEqAjdTOZfguQJAXeplLf_CsrdwDE8fqvdcreNoOCfiCjN0hLPwfD-iUqki8EZCMU8awSAisdpw9VsqUX9g09GVhKOImTgHpF2QI9KtaWpajwDrciSTE6M47-kO2mlOYtHCUp1tw6CZjrEIU6Gef9QqmNLWbjunXrVsSx2Lp_1OtTtXZN8Tj23zgBurYkv0ywGSZ57')"></div>
-<div class="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent opacity-60"></div>
-<div class="absolute inset-0 p-5 flex flex-col justify-end">
-<div class="translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-<p class="text-sm line-clamp-2 text-white/90 mb-3 italic">"Cyberpunk street with holographic fish swimming through the air..."</p>
-<button class="w-full py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg text-xs font-bold hover:bg-white hover:text-background-dark transition-all flex items-center justify-center gap-2">
-<span class="material-symbols-outlined text-sm">content_copy</span>
+                </button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Sample 1 -->
+                <div
+                    class="group relative aspect-[9/16] rounded-xl overflow-hidden border border-border-muted bg-surface">
+                    <div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+                        data-alt="Futuristic neon city cinematic video preview"
+                        style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCV4gXecplqeQFPZzQHS0VPwaE9rJNJYbN-VdHL4S9v515sHjJyavfEwSoJUL1eeB9saNMFFvmEqAjdTOZfguQJAXeplLf_CsrdwDE8fqvdcreNoOCfiCjN0hLPwfD-iUqki8EZCMU8awSAisdpw9VsqUX9g09GVhKOImTgHpF2QI9KtaWpajwDrciSTE6M47-kO2mlOYtHCUp1tw6CZjrEIU6Gef9QqmNLWbjunXrVsSx2Lp_1OtTtXZN8Tj23zgBurYkv0ywGSZ57')">
+                    </div>
+                    <div
+                        class="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent opacity-60">
+                    </div>
+                    <div class="absolute inset-0 p-5 flex flex-col justify-end">
+                        <div class="translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                            <p class="text-sm line-clamp-2 text-white/90 mb-3 italic">"Cyberpunk street with holographic
+                                fish swimming through the air..."</p>
+                            <button
+                                class="w-full py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg text-xs font-bold hover:bg-white hover:text-background-dark transition-all flex items-center justify-center gap-2">
+                                <span class="material-symbols-outlined text-sm">content_copy</span>
                                 Use Prompt
                             </button>
-</div>
-</div>
-<div class="absolute top-4 left-4">
-<span class="px-2 py-1 bg-primary/90 text-background-dark text-[10px] font-black uppercase rounded">Mythic</span>
-</div>
-</div>
-<!-- Sample 2 -->
-<div class="group relative aspect-[9/16] rounded-xl overflow-hidden border border-border-muted bg-surface">
-<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="Ancient temple in the jungle video preview" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAWHlgJpdwkbmW_iShONvUt77UZAEKOM6GZFM8heFAFZacdKsy6TfAtC-e8RYBluHi7ulu1KZRpecZAb80KKCaUhiT0_QZV0GV_0Afge6VjVPhk30OgqnLCDzwVsXk5cG0drlk8qG3gE-DYG84LvLT6J9cdytYsem1Z_mbKJe3naJuDjKYEPgqz9lmn1vIh1dyr8ci6hjhGBlCMJmpN-NnkNyrxyjm8-d_m_gytisfsUT3iegWj5mZhBzYwcv4zTzVnFh32QE7vnLki')"></div>
-<div class="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent opacity-60"></div>
-<div class="absolute inset-0 p-5 flex flex-col justify-end">
-<div class="translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-<p class="text-sm line-clamp-2 text-white/90 mb-3 italic">"Overgrown Aztec temple revealed by morning sun rays in a deep jungle..."</p>
-<button class="w-full py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg text-xs font-bold hover:bg-white hover:text-background-dark transition-all flex items-center justify-center gap-2">
-<span class="material-symbols-outlined text-sm">content_copy</span>
+                        </div>
+                    </div>
+                    <div class="absolute top-4 left-4">
+                        <span
+                            class="px-2 py-1 bg-primary/90 text-background-dark text-[10px] font-black uppercase rounded">Mythic</span>
+                    </div>
+                </div>
+                <!-- Sample 2 -->
+                <div
+                    class="group relative aspect-[9/16] rounded-xl overflow-hidden border border-border-muted bg-surface">
+                    <div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+                        data-alt="Ancient temple in the jungle video preview"
+                        style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAWHlgJpdwkbmW_iShONvUt77UZAEKOM6GZFM8heFAFZacdKsy6TfAtC-e8RYBluHi7ulu1KZRpecZAb80KKCaUhiT0_QZV0GV_0Afge6VjVPhk30OgqnLCDzwVsXk5cG0drlk8qG3gE-DYG84LvLT6J9cdytYsem1Z_mbKJe3naJuDjKYEPgqz9lmn1vIh1dyr8ci6hjhGBlCMJmpN-NnkNyrxyjm8-d_m_gytisfsUT3iegWj5mZhBzYwcv4zTzVnFh32QE7vnLki')">
+                    </div>
+                    <div
+                        class="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent opacity-60">
+                    </div>
+                    <div class="absolute inset-0 p-5 flex flex-col justify-end">
+                        <div class="translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                            <p class="text-sm line-clamp-2 text-white/90 mb-3 italic">"Overgrown Aztec temple revealed
+                                by morning sun rays in a deep jungle..."</p>
+                            <button
+                                class="w-full py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg text-xs font-bold hover:bg-white hover:text-background-dark transition-all flex items-center justify-center gap-2">
+                                <span class="material-symbols-outlined text-sm">content_copy</span>
                                 Use Prompt
                             </button>
-</div>
-</div>
-<div class="absolute top-4 left-4">
-<span class="px-2 py-1 bg-primary/90 text-background-dark text-[10px] font-black uppercase rounded">Nature</span>
-</div>
-</div>
-<!-- Sample 3 -->
-<div class="group relative aspect-[9/16] rounded-xl overflow-hidden border border-border-muted bg-surface hidden lg:block">
-<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="Abstract fluid art liquid gold video preview" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAAvjKwmUPk7RQFBbDtXiXyhW6uW6scexCdNbYUV55OsED4YkfluCT-e6kvnSx_F7eGvPKJ5Rt5A-Yz1PlGfBDUzp5IdsT3KBT7_zIBWl7ZQF2YWnmhK4egI_AM4V_xU4tg5hkxVZkWiSsoPSq2SlOTjU19bWMhwwdqJkJAdU4RlX6YqpcFWe26sI3LSD1DJvaF19woI_NfXcDd7zmOrnr6qcnV9XxH9IYrKiQOASGM8vOJfZb8lb8TYyKU9RfcmmAmiMlmvnpEMp4i')"></div>
-<div class="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent opacity-60"></div>
-<div class="absolute inset-0 p-5 flex flex-col justify-end">
-<div class="translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-<p class="text-sm line-clamp-2 text-white/90 mb-3 italic">"Swirling clouds of liquid gold and deep purple obsidian mixing in zero gravity..."</p>
-<button class="w-full py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg text-xs font-bold hover:bg-white hover:text-background-dark transition-all flex items-center justify-center gap-2">
-<span class="material-symbols-outlined text-sm">content_copy</span>
+                        </div>
+                    </div>
+                    <div class="absolute top-4 left-4">
+                        <span
+                            class="px-2 py-1 bg-primary/90 text-background-dark text-[10px] font-black uppercase rounded">Nature</span>
+                    </div>
+                </div>
+                <!-- Sample 3 -->
+                <div
+                    class="group relative aspect-[9/16] rounded-xl overflow-hidden border border-border-muted bg-surface hidden lg:block">
+                    <div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+                        data-alt="Abstract fluid art liquid gold video preview"
+                        style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAAvjKwmUPk7RQFBbDtXiXyhW6uW6scexCdNbYUV55OsED4YkfluCT-e6kvnSx_F7eGvPKJ5Rt5A-Yz1PlGfBDUzp5IdsT3KBT7_zIBWl7ZQF2YWnmhK4egI_AM4V_xU4tg5hkxVZkWiSsoPSq2SlOTjU19bWMhwwdqJkJAdU4RlX6YqpcFWe26sI3LSD1DJvaF19woI_NfXcDd7zmOrnr6qcnV9XxH9IYrKiQOASGM8vOJfZb8lb8TYyKU9RfcmmAmiMlmvnpEMp4i')">
+                    </div>
+                    <div
+                        class="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent opacity-60">
+                    </div>
+                    <div class="absolute inset-0 p-5 flex flex-col justify-end">
+                        <div class="translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                            <p class="text-sm line-clamp-2 text-white/90 mb-3 italic">"Swirling clouds of liquid gold
+                                and deep purple obsidian mixing in zero gravity..."</p>
+                            <button
+                                class="w-full py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg text-xs font-bold hover:bg-white hover:text-background-dark transition-all flex items-center justify-center gap-2">
+                                <span class="material-symbols-outlined text-sm">content_copy</span>
                                 Use Prompt
                             </button>
-</div>
-</div>
-<div class="absolute top-4 left-4">
-<span class="px-2 py-1 bg-primary/90 text-background-dark text-[10px] font-black uppercase rounded">Abstract</span>
-</div>
-</div>
-</div>
-</section>
-</main>
-<!-- Floating Help Button -->
-<button class="fixed bottom-8 right-8 w-14 h-14 bg-surface border border-border-muted rounded-full flex items-center justify-center shadow-2xl hover:bg-slate-800 transition-colors group">
-<span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">question_answer</span>
-</button>
-</body></html>
+                        </div>
+                    </div>
+                    <div class="absolute top-4 left-4">
+                        <span
+                            class="px-2 py-1 bg-primary/90 text-background-dark text-[10px] font-black uppercase rounded">Abstract</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <!-- Floating Help Button -->
+    <button
+        class="fixed bottom-8 right-8 w-14 h-14 bg-surface border border-border-muted rounded-full flex items-center justify-center shadow-2xl hover:bg-slate-800 transition-colors group">
+        <span
+            class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">question_answer</span>
+    </button>
+    <script src="index.js"></script>
+    <script>
+
+        // call setupFormListeners on load
+        window.addEventListener('load', () => {
+            setupFormListeners();
+        });
+    </script>
+</body>
+
+</html>
