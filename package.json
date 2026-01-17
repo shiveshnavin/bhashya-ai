@@ -1,4 +1,17 @@
 {
+  "name": "bhashya-ai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Bhashya AI — local Firebase emulator setup and small hosting demo",
+  "main": "index.js",
+  "scripts": {
+    "start": "firebase emulators:start --only hosting,functions",
+    "emulators:start": "firebase emulators:start --import=./emulator_data --export-on-exit",
+    "emulators:import": "firebase emulators:start --import=./emulator_data --only firestore,auth,functions,hosting",
+    "emulators:export": "firebase emulators:export ./emulator_data",
+    "emulators:exec": "firebase emulators:exec \"echo \"Run integration tests here\"\"",
+    "deploy": "firebase deploy --only hosting,functions"
+  },
   "devDependencies": {
     "firebase-tools": "^15.3.1"
   }

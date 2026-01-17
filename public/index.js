@@ -27,7 +27,7 @@ function setupFormListeners() {
         categorySelect.addEventListener('change', () => {
             // Map option text to theme value
             const valueMap = {
-                'General / Cinematic': 'general',
+                'General': 'general',
                 'Mythological': 'hindu'
             };
             const selectedText = categorySelect.options[categorySelect.selectedIndex].text;
@@ -48,6 +48,18 @@ function setupFormListeners() {
     // Delivery Email
     const emailInput = document.querySelector('[data-delivery-email]');
     if (emailInput) {
+        // initialize object from prefilled value (avoid false-invalid state on load)
+        try {
+            const initial = (emailInput.value || '').trim();
+            if (initial) obj.delivery_email = initial;
+        } catch (e) { }
+        // ensure any lingering error UI is cleared on load
+        const _emailErrorInit = document.getElementById('delivery-email-error');
+        if (_emailErrorInit) {
+            _emailErrorInit.classList.add('hidden');
+        }
+        emailInput.classList.remove('ring-2', 'ring-red-500', 'border-red-500');
+        emailInput.setAttribute('aria-invalid', 'false');
         const emailErrorEl = document.getElementById('delivery-email-error');
         emailInput.addEventListener('input', () => {
             obj.delivery_email = emailInput.value;
@@ -200,7 +212,16 @@ function setupFormListeners() {
     function lockPremiumButton(btn) {
         // skip exempted values
         if (isExempt(btn)) return;
-        btn.classList.add('premium-outline');
+        // add visual badge
+        btn.classList.add('premium-locked');
+        if (!btn.querySelector('.premium-icon')) {
+            try {
+                const span = document.createElement('span');
+                span.className = 'premium-icon';
+                span.textContent = '★';
+                btn.appendChild(span);
+            } catch (e) { }
+        }
         if (premiumHandlerMap.has(btn)) return;
         const handler = (ev) => {
             ev.preventDefault();
@@ -212,7 +233,9 @@ function setupFormListeners() {
     }
 
     function unlockPremiumButton(btn) {
-        btn.classList.remove('premium-outline');
+        btn.classList.remove('premium-locked');
+        const icon = btn.querySelector('.premium-icon');
+        if (icon) try { icon.remove(); } catch (e) { }
         const handler = premiumHandlerMap.get(btn);
         if (handler) {
             btn.removeEventListener('click', handler, true);
@@ -235,6 +258,25 @@ function setupFormListeners() {
 
     // run once on load
     setTimeout(updatePremiumUI, 50);
+
+    // defensive check: if the email input is prefilled and is valid, ensure any inline error UI is cleared
+    setTimeout(() => {
+        try {
+            if (emailInput) {
+                const valid = typeof emailInput.checkValidity === 'function' ? emailInput.checkValidity() : true;
+                if (valid) {
+                    const emailErrorEl2 = document.getElementById('delivery-email-error');
+                    if (emailErrorEl2) {
+                        emailErrorEl2.classList.add('hidden');
+                        emailErrorEl2.style.display = 'none';
+                        emailErrorEl2.textContent = 'Please enter a valid email address.';
+                    }
+                    emailInput.classList.remove('ring-2', 'ring-red-500', 'border-red-500');
+                    emailInput.setAttribute('aria-invalid', 'false');
+                }
+            }
+        } catch (e) { /* ignore */ }
+    }, 120);
 
     // No free badges appended — UI decision to keep clean
 
@@ -283,3 +325,272 @@ function setupToggleActive(selector, valueKey, objKey, valueTransform, obj) {
 // Usage:
 // const getFormData = setupFormListeners();
 // ... later: const data = getFormData();
+
+// Lazy-init sample video players after full page load to avoid blocking rendering
+function initSampleVideos() {
+    const cards = Array.from(document.querySelectorAll('[data-video-src]'));
+    if (!cards.length) return;
+
+    const io = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            const card = entry.target;
+            observer.unobserve(card);
+            try {
+                const src = card.getAttribute('data-video-src');
+                if (!src) return;
+                // create video element
+                const video = document.createElement('video');
+                video.className = 'absolute inset-0 w-full h-full object-cover';
+                video.setAttribute('playsinline', '');
+                video.muted = false; // user requested audio on
+                video.loop = true;
+                video.controls = false; // use custom play overlay instead of native controls
+                // start preloading so the browser fetches metadata/initial segments (do NOT autoplay)
+                video.preload = 'auto';
+                video.setAttribute('aria-label', 'Sample generated video preview');
+
+                // set source on demand to avoid network usage until visible
+                const source = document.createElement('source');
+                source.type = 'video/mp4';
+                source.src = src;
+                video.appendChild(source);
+
+                // insert video as first child so it covers the card background
+                const firstChild = card.firstElementChild;
+                if (firstChild) card.insertBefore(video, firstChild);
+                else card.appendChild(video);
+
+                // Remove/hide any hard-coded poster (either inline background-image or <img data-poster>) so the video is visible
+                try {
+                    const imgPoster = card.querySelector('img[data-poster]');
+                    if (imgPoster) {
+                        imgPoster.classList.add('hidden');
+                    } else {
+                        const bgEl = card.querySelector('[style*="background-image"]');
+                        if (bgEl) {
+                            bgEl.style.backgroundImage = 'none';
+                            bgEl.classList.add('hidden');
+                        }
+                    }
+                } catch (e) { /* ignore */ }
+
+                // register this player globally so we can pause others when one plays
+                try { window._sampleVideoPlayers = window._sampleVideoPlayers || []; } catch (e) { window._sampleVideoPlayers = []; }
+
+                // create centered play overlay button (small control only — don't block underlying buttons)
+                const playBtn = document.createElement('button');
+                playBtn.type = 'button';
+                playBtn.setAttribute('aria-label', 'Play preview');
+                playBtn.className = '';
+                // center the small circular control
+                playBtn.style.position = 'absolute';
+                playBtn.style.left = '50%';
+                playBtn.style.top = '50%';
+                playBtn.style.transform = 'translate(-50%, -50%)';
+                playBtn.style.zIndex = '10';
+                playBtn.style.width = '72px';
+                playBtn.style.height = '72px';
+                playBtn.style.padding = '0';
+                playBtn.style.background = 'transparent';
+                playBtn.style.border = 'none';
+                playBtn.style.cursor = 'pointer';
+                playBtn.style.pointerEvents = 'auto';
+                playBtn.innerHTML = `
+                                        <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <circle cx="36" cy="36" r="36" fill="rgba(0,0,0,0.45)"/>
+                                            <path d="M29 24L49 36L29 48V24Z" fill="white"/>
+                                        </svg>`;
+
+                // ensure the overlay control is above the video but does not block other interactive elements in the card
+                card.appendChild(playBtn);
+
+                // create loader overlay (hidden by default)
+                const loader = document.createElement('div');
+                loader.className = 'absolute inset-0 flex items-center justify-center z-20';
+                loader.style.pointerEvents = 'none';
+                loader.style.display = 'none';
+                loader.innerHTML = `
+                                    <div style="width:56px;height:56px;border-radius:9999px;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;">
+                                        <svg class="animate-spin" width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)" stroke-width="4"></circle>
+                                            <path d="M22 12a10 10 0 00-10-10" stroke="white" stroke-width="4" stroke-linecap="round"></path>
+                                        </svg>
+                                    </div>`;
+                card.appendChild(loader);
+
+                function showPlayOverlay() { playBtn.style.display = ''; }
+                function hidePlayOverlay() { playBtn.style.display = 'none'; }
+
+                // change icon to pause
+                function setPauseIcon() {
+                    playBtn.innerHTML = `
+                      <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="36" cy="36" r="36" fill="rgba(0,0,0,0.45)"/>
+                        <rect x="24" y="22" width="8" height="28" fill="white"/>
+                        <rect x="40" y="22" width="8" height="28" fill="white"/>
+                      </svg>`;
+                }
+                function setPlayIcon() {
+                    playBtn.innerHTML = `
+                      <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="36" cy="36" r="36" fill="rgba(0,0,0,0.45)"/>
+                        <path d="M29 24L49 36L29 48V24Z" fill="white"/>
+                      </svg>`;
+                }
+
+                // helper: pause other players
+                function pauseOtherPlayers() {
+                    try {
+                        (window._sampleVideoPlayers || []).forEach(p => {
+                            if (p.video && p.video !== video) {
+                                try { p.video.pause(); } catch (e) { }
+                                if (p.playBtn) p.playBtn.style.display = '';
+                                if (p.setPlayIcon) p.setPlayIcon();
+                            }
+                        });
+                    } catch (e) { /* ignore */ }
+                }
+
+                // helper: start playback for this video (with loader)
+                function startPlayback() {
+                    pauseOtherPlayers();
+                    if (video._loading) return;
+                    loader.style.display = '';
+                    video._loading = true;
+                    const onPlayable = () => {
+                        video._loading = false;
+                        loader.style.display = 'none';
+                        hidePlayOverlay();
+                        setPauseIcon();
+                        video.removeEventListener('canplay', onPlayable);
+                        video.removeEventListener('playing', onPlayable);
+                    };
+                    video.addEventListener('canplay', onPlayable);
+                    video.addEventListener('playing', onPlayable);
+                    video.play().then(() => {
+                        // on success, handlers above will hide loader
+                    }).catch(() => {
+                        video._loading = false;
+                        loader.style.display = 'none';
+                        showPlayOverlay();
+                        setPlayIcon();
+                    });
+                }
+
+                // helper: pause this video
+                function pausePlayback() {
+                    try { video.pause(); } catch (e) { }
+                    video._loading = false;
+                    loader.style.display = 'none';
+                    showPlayOverlay();
+                    setPlayIcon();
+                }
+
+                // clicking overlay toggles playback (start playing if paused)
+                playBtn.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    if (video._loading) {
+                        // cancel loading
+                        pausePlayback();
+                        return;
+                    }
+                    if (video.paused) startPlayback();
+                    else pausePlayback();
+                });
+
+                // update overlay and icon based on play/pause
+                video.addEventListener('play', () => { loader.style.display = 'none'; hidePlayOverlay(); setPauseIcon(); });
+                video.addEventListener('playing', () => { loader.style.display = 'none'; hidePlayOverlay(); setPauseIcon(); });
+                video.addEventListener('pause', () => { loader.style.display = 'none'; showPlayOverlay(); setPlayIcon(); });
+
+                // clicking the video itself should toggle playback (pause if playing)
+                video.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    if (video._loading) {
+                        pausePlayback();
+                        return;
+                    }
+                    if (video.paused) startPlayback();
+                    else pausePlayback();
+                });
+
+                // clicking anywhere on the card (except interactive controls) should also toggle playback
+                card.addEventListener('click', (ev) => {
+                    // ignore clicks on interactive elements
+                    if (ev.target.closest('button, a, input, select, textarea')) return;
+                    if (video._loading) {
+                        pausePlayback();
+                        return;
+                    }
+                    if (video.paused) startPlayback();
+                    else pausePlayback();
+                });
+
+                // Wire the "Use Prompt" button: populate the prompt and select but do not trigger playback
+                try {
+                    const useBtn = Array.from(card.querySelectorAll('button')).find(b => (b.textContent || '').trim().includes('Use Prompt'));
+                    if (useBtn) {
+                        useBtn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            // extract sample prompt text from the card
+                            const sampleP = card.querySelector('p');
+                            const sampleText = sampleP ? (sampleP.textContent || '').trim().replace(/^"|"$/g, '') : '';
+                            const promptElMain = document.querySelector('[data-prompt]');
+                            if (promptElMain) {
+                                promptElMain.value = sampleText;
+                                promptElMain.dispatchEvent(new Event('input', { bubbles: true }));
+                            }
+
+                            // Prefill content category: prefer explicit card attribute, fall back to top-left tag
+                            const categorySelect = document.querySelector('[data-content-category]');
+                            const explicitCategory = card.getAttribute('data-content-category');
+                            if (categorySelect) {
+                                if (explicitCategory) {
+                                    categorySelect.value = explicitCategory;
+                                } else {
+                                    const tagSpan = card.querySelector('.absolute.top-4.left-4 span');
+                                    if (tagSpan) {
+                                        const tag = (tagSpan.textContent || '').trim().toLowerCase();
+                                        if (tag.includes('myth') || tag.includes('mythic')) categorySelect.value = 'Mythological';
+                                        else categorySelect.value = 'General';
+                                    }
+                                }
+                                categorySelect.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+
+                            // Prefill language: if card has data-language, simulate clicking matching language button
+                            const lang = (card.getAttribute('data-language') || '').trim().toLowerCase();
+                            if (lang) {
+                                const langBtn = document.querySelector(`[data-language="${lang}"]`);
+                                if (langBtn) {
+                                    try { langBtn.click(); } catch (e) { /* ignore */ }
+                                }
+                            }
+                        });
+                    }
+                } catch (e) { /* ignore */ }
+
+                // ensure icon state functions are available in registry
+                const playerEntry = { video, playBtn, setPlayIcon, setPauseIcon };
+                window._sampleVideoPlayers.push(playerEntry);
+
+                // load the video now that the source is set (do NOT autoplay)
+                try { video.load(); showPlayOverlay(); setPlayIcon(); } catch (e) { /* ignore */ }
+            } catch (e) {
+                // fail silently — leave the card fallback background-image intact
+                console.error('Video init error', e);
+            }
+        });
+    }, { rootMargin: '200px', threshold: 0.05 });
+
+    cards.forEach(c => io.observe(c));
+}
+
+// Ensure videos initialize after the page has fully loaded
+if (typeof window !== 'undefined') {
+    window.addEventListener('load', () => {
+        try { initSampleVideos(); } catch (e) { console.error(e); }
+    });
+}
