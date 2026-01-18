@@ -38,11 +38,24 @@ function setupFormListeners() {
 
     // Token input (optional)
     const tokenInput = document.querySelector('[data-token-input]');
+    // If a token is provided in the URL query params (e.g. ?token=XYZ), apply it
+    // only in the frontend / HTML (do not send to server automatically).
+    const _urlParams = new URLSearchParams(window.location.search || '');
+    const _urlToken = (_urlParams.get('token') || '').trim();
     if (tokenInput) {
+        if (_urlToken) {
+            try {
+                tokenInput.value = _urlToken;
+            } catch (e) { /* ignore */ }
+            obj.token = _urlToken;
+        }
         tokenInput.addEventListener('input', () => {
             obj.token = (tokenInput.value || '').trim() || 'free';
             updatePremiumUI();
         });
+    } else {
+        // No token input in DOM, but still respect URL token for frontend state
+        if (_urlToken) obj.token = _urlToken;
     }
 
     // Delivery Email
@@ -698,11 +711,29 @@ if (typeof window !== 'undefined') {
                 try {
                     if (currentStepEl) {
                         const totalTasks = Array.isArray(data.tasks) ? data.tasks.length : 0;
+                        let isExecuting = false;
+                        let executingName = null;
+
+                        // Prefer explicit currentTaskIdx when present
                         if (typeof data.currentTaskIdx === 'number' && totalTasks > 0 && data.currentTaskIdx >= 0 && data.currentTaskIdx < totalTasks) {
                             const t = data.tasks[data.currentTaskIdx];
-                            const name = t && (t.uniqueStepName || t.unique_step_name || t.name);
-                            if (name) currentStepEl.textContent = formatTaskLabel(name);
-                            else currentStepEl.textContent = '—';
+                            executingName = t && (t.uniqueStepName || t.unique_step_name || t.name);
+                            isExecuting = !!executingName;
+                        }
+
+                        // If no currentTaskIdx, try to infer running task from executedTasks (status IN_PROGRESS)
+                        if (!executingName) {
+                            const executed = Array.isArray(data.executedTasks) ? data.executedTasks : [];
+                            const inProg = executed.find(e => (String(e.status || '').toUpperCase() === 'IN_PROGRESS'));
+                            if (inProg) {
+                                executingName = inProg.uniqueStepName || inProg.unique_step_name || inProg.name;
+                                isExecuting = !!executingName;
+                            }
+                        }
+
+                        // If we still don't have an executing name, fall back to last executed step for display
+                        if (executingName) {
+                            currentStepEl.textContent = formatTaskLabel(executingName);
                         } else {
                             const executed = Array.isArray(data.executedTasks) ? data.executedTasks : [];
                             if (executed.length) {
@@ -713,6 +744,69 @@ if (typeof window !== 'undefined') {
                                 currentStepEl.textContent = '—';
                             }
                         }
+
+                        // Mirror the current step into the main view under the progress bar
+                        try {
+                            const mainStepEl = document.querySelector('[data-generation-current-step-main]');
+                            if (mainStepEl) {
+                                mainStepEl.textContent = currentStepEl.textContent;
+                                if (isExecuting) {
+                                    mainStepEl.classList.add('text-primary');
+                                    mainStepEl.classList.remove('text-white');
+                                } else {
+                                    mainStepEl.classList.remove('text-primary');
+                                    mainStepEl.classList.add('text-white');
+                                }
+                            }
+                        } catch (e) { /* ignore main step mirroring errors */ }
+
+                        // Update the description under the overall progress bar to reflect the
+                        // currently executing step (prefer task.description from `tasks` array)
+                        try {
+                            const descEl = document.querySelector('[data-generation-current-step-desc]');
+                            if (descEl) {
+                                let descText = '';
+                                const tasksArr = Array.isArray(data.tasks) ? data.tasks : [];
+
+                                // If we have an executingName, prefer the description from the matching task
+                                if (executingName) {
+                                    const matched = tasksArr.find(tt => {
+                                        const n = tt && (tt.uniqueStepName || tt.unique_step_name || tt.name);
+                                        return n === executingName;
+                                    });
+                                    if (matched && (matched.description || matched.desc)) {
+                                        descText = matched.description || matched.desc;
+                                    } else {
+                                        // fall back to heuristics
+                                        descText = getDefaultDescriptionFor(executingName) || '';
+                                    }
+                                } else {
+                                    // No explicit executingName: try to use the mainStep text to find a matching task
+                                    const mainText = (document.querySelector('[data-generation-current-step-main]') || { textContent: '' }).textContent || '';
+                                    const matched = tasksArr.find(tt => formatTaskLabel(tt.uniqueStepName || tt.unique_step_name || tt.name) === (mainText || '').trim());
+                                    if (matched && (matched.description || matched.desc)) descText = matched.description || matched.desc;
+                                    else descText = data.status || '';
+                                }
+
+                                descEl.textContent = descText || '';
+                            }
+                        } catch (e) { /* ignore description wiring errors */ }
+
+                        // Toggle dot and highlight color for the currently executing step (dot lives in Overall Progress)
+                        try {
+                            const dot = document.querySelector('[data-generation-exec-dot]');
+                            if (dot) {
+                                if (isExecuting) dot.classList.remove('hidden');
+                                else dot.classList.add('hidden');
+                            }
+                            if (isExecuting) {
+                                currentStepEl.classList.add('text-primary');
+                                currentStepEl.classList.remove('text-white');
+                            } else {
+                                currentStepEl.classList.remove('text-primary');
+                                currentStepEl.classList.add('text-white');
+                            }
+                        } catch (e) { /* ignore dot toggling errors */ }
                     }
                 } catch (e) { /* ignore */ }
 
@@ -746,18 +840,58 @@ if (typeof window !== 'undefined') {
                         }
                     }
 
-                    // Manage preview video visibility: hide preview video unless the status indicates success
+                    // Manage preview video visibility and status-driven UI updates
                     try {
                         const previewRoot = document.querySelector('[data-alt="Abstract blurry neon cyberpunk background"]');
                         const previewVideo = document.getElementById('generation-preview-video');
+
+                        // If document signals a failure, update the progress UI and show a failure banner
+                        try {
+                            const stoppedEl = document.getElementById('generation-stopped');
+                            const isFailed = (statusRawShort === 'FAILED' || statusRawShort === 'ERROR');
+                            if (isFailed) {
+                                try {
+                                    if (percentEl) {
+                                        percentEl.textContent = 'Failed';
+                                        percentEl.classList.remove('text-primary');
+                                        percentEl.classList.add('text-red-400');
+                                    }
+                                } catch (e) { }
+                                try {
+                                    if (barEl) {
+                                        barEl.style.width = (typeof pct !== 'undefined' && pct !== null) ? (pct + '%') : '100%';
+                                        barEl.style.background = '#ef4444';
+                                        barEl.style.boxShadow = '0 0 20px rgba(239,68,68,0.4)';
+                                    }
+                                } catch (e) { }
+                                if (stoppedEl) {
+                                    try {
+                                        stoppedEl.classList.remove('hidden');
+                                        const titleEl = stoppedEl.querySelector('.font-bold');
+                                        const subEl = stoppedEl.querySelector('div.text-xs');
+                                        if (titleEl) titleEl.textContent = 'Generation failed';
+                                        if (subEl) subEl.textContent = 'An error occurred during generation.';
+                                    } catch (e) { }
+                                }
+                                try { const dot = document.querySelector('[data-generation-exec-dot]'); if (dot) dot.classList.add('hidden'); } catch (e) { }
+                            } else {
+                                try { const stoppedEl = document.getElementById('generation-stopped'); if (stoppedEl) stoppedEl.classList.add('hidden'); } catch (e) { }
+                            }
+                        } catch (e) { /* ignore failure UI wiring errors */ }
+
                         if (previewVideo && previewRoot) {
                             if (statusRawShort !== 'SUCCESS' && statusRawShort !== 'PARTIAL_SUCCESS') {
                                 try { previewVideo.pause(); } catch (e) { }
                                 previewVideo.classList.add('hidden');
                                 try { previewVideo.removeAttribute('src'); previewVideo.load(); } catch (e) { }
                                 const spinner = previewRoot.querySelector('.size-16');
-                                if (spinner) spinner.classList.remove('hidden');
-                                // restore overlays when not playing
+                                if (spinner) {
+                                    // show spinner only while actively generating or queued
+                                    if (statusRawShort === 'IN_PROGRESS' || statusRawShort === 'QUEUED' || statusRawShort === 'PAUSED') spinner.classList.remove('hidden');
+                                    else spinner.classList.add('hidden');
+                                }
+
+                                // restore overlays when not playing; adjust center overlay on failure
                                 try {
                                     const scan = previewRoot.querySelector('.scanline');
                                     const darkBackdrop = previewRoot.querySelector('.backdrop-blur-sm');
@@ -766,25 +900,45 @@ if (typeof window !== 'undefined') {
                                     const leftOverlay = previewRoot.querySelector('.absolute.bottom-10.left-4');
                                     if (scan) scan.style.display = '';
                                     if (darkBackdrop) darkBackdrop.style.display = '';
-                                    if (centerOverlay) centerOverlay.style.display = '';
+                                    if (centerOverlay) {
+                                        centerOverlay.style.display = '';
+                                        try {
+                                            const h4 = centerOverlay.querySelector('h4');
+                                            const p = centerOverlay.querySelector('p');
+                                            if (statusRawShort === 'FAILED' || statusRawShort === 'ERROR') {
+                                                if (h4) h4.textContent = 'Failed';
+                                                if (p) p.textContent = 'Preview unavailable due to an error';
+                                            } else if (statusRawShort === 'IN_PROGRESS') {
+                                                if (h4) h4.textContent = 'Generating';
+                                                if (p) p.textContent = 'Waiting for preview';
+                                            } else {
+                                                if (h4) h4.textContent = 'Visualizing';
+                                                if (p) p.textContent = 'PREVIEW UNAVAILABLE DURING\n HIGH-DENSITY RENDERING';
+                                            }
+                                        } catch (e) { }
+                                    }
                                     if (rightOverlay) rightOverlay.style.display = '';
                                     if (leftOverlay) leftOverlay.style.display = '';
-                                    // hide/unhide unmute control
-                                    try {
-                                        const unmute = document.getElementById('generation-unmute-btn');
-                                        if (unmute) unmute.classList.add('hidden');
-                                    } catch (e) { }
+                                    try { const unmute = document.getElementById('generation-unmute-btn'); if (unmute) unmute.classList.add('hidden'); } catch (e) { }
                                 } catch (e) { }
                             }
                         }
                     } catch (e) { /* ignore preview visibility */ }
 
-                    // Update progress message to reflect current step or status
+                    // Update progress message to reflect the user-facing current step (or status)
                     try {
                         if (msgEl) {
-                            const executed = Array.isArray(data.executedTasks) ? data.executedTasks : [];
-                            const lastName = (executed.length ? (executed[executed.length - 1].uniqueStepName || executed[executed.length - 1].unique_step_name || executed[executed.length - 1].name) : null) || data.status || 'Processing...';
-                            msgEl.textContent = String(lastName);
+                            // Prefer the main mirrored current-step (human-friendly) if present,
+                            // otherwise fall back to status or the raw last executed task name.
+                            const mainStepEl = document.querySelector('[data-generation-current-step-main]');
+                            const mainText = mainStepEl ? (mainStepEl.textContent || '').trim() : '';
+                            if (mainText && mainText !== '—') {
+                                msgEl.textContent = mainText;
+                            } else {
+                                const executed = Array.isArray(data.executedTasks) ? data.executedTasks : [];
+                                const lastName = (executed.length ? (executed[executed.length - 1].uniqueStepName || executed[executed.length - 1].unique_step_name || executed[executed.length - 1].name) : null) || data.status || 'Processing...';
+                                msgEl.textContent = String(lastName);
+                            }
                         }
                     } catch (e) { /* ignore */ }
                 } catch (e) { /* ignore progress update errors */ }
@@ -1024,6 +1178,25 @@ if (typeof window !== 'undefined') {
                 // Render pipeline tasks: uses `tasks` array as source of truth and `executedTasks` for status
                 try {
                     const pipelineContainer = document.getElementById('generation-pipeline');
+                    // Determine active executing name for deduping the pipeline title
+                    let activeExecutingName = null;
+                    let isActiveExecuting = false;
+                    try {
+                        const tasksLocal = Array.isArray(data.tasks) ? data.tasks : [];
+                        if (typeof data.currentTaskIdx === 'number' && tasksLocal.length > 0 && data.currentTaskIdx >= 0 && data.currentTaskIdx < tasksLocal.length) {
+                            const tcur = tasksLocal[data.currentTaskIdx];
+                            activeExecutingName = tcur && (tcur.uniqueStepName || tcur.unique_step_name || tcur.name) || null;
+                            isActiveExecuting = !!activeExecutingName;
+                        }
+                        if (!activeExecutingName) {
+                            const executedLocal = Array.isArray(data.executedTasks) ? data.executedTasks : [];
+                            const inProgLocal = executedLocal.find(e => (String(e.status || '').toUpperCase() === 'IN_PROGRESS'));
+                            if (inProgLocal) {
+                                activeExecutingName = inProgLocal.uniqueStepName || inProgLocal.unique_step_name || inProgLocal.name || null;
+                                isActiveExecuting = !!activeExecutingName;
+                            }
+                        }
+                    } catch (e) { /* ignore dedupe errors */ }
                     if (pipelineContainer && Array.isArray(data.tasks)) {
                         // Build a map of executed task statuses by uniqueStepName for quick lookup
                         const executed = Array.isArray(data.executedTasks) ? data.executedTasks : [];
@@ -1082,7 +1255,8 @@ if (typeof window !== 'undefined') {
                             const rightCol = document.createElement('div');
                             rightCol.className = 'flex flex-col pb-6';
                             const title = document.createElement('p');
-                            title.className = (status === 'SUCCESS' ? 'text-white text-lg font-bold leading-none' : (status === 'IN_PROGRESS' ? 'text-primary text-lg font-bold leading-none' : 'text-white/40 text-lg font-bold leading-none'));
+                            const hideDuplicate = (isActiveExecuting && activeExecutingName && (activeExecutingName === name));
+                            title.className = (status === 'SUCCESS' ? 'text-white text-lg font-bold leading-none' : (status === 'IN_PROGRESS' ? 'text-primary text-lg font-bold leading-none' : 'text-white/40 text-lg font-bold leading-none')) + (hideDuplicate ? ' hidden' : '');
                             title.textContent = formatTaskLabel(name);
                             const subtitle = document.createElement('p');
                             subtitle.className = (status === 'SUCCESS' ? 'text-[#9abcbc] text-sm mt-1' : 'text-white/20 text-sm mt-1');

@@ -1,4 +1,4 @@
-const functions = require('firebase-functions');
+const { onRequest } = require('firebase-functions/v2/https');
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const path = require('path');
@@ -18,12 +18,12 @@ app.use(express.urlencoded({ extended: true }));
 const proxyTarget = process.env.PROXY_TARGET || process.env.TARGET || 'http://192.168.1.17:8080';
 console.log('apiGenerateProxy target:', proxyTarget);
 
-app.use('/api/generate', createProxyMiddleware({
+// Mount the proxy at `/api` so any `/api/*` path (e.g. /api/generate/:id, /api/health)
+// is forwarded to the target backend unchanged.
+app.use('/api', createProxyMiddleware({
     target: proxyTarget,
     changeOrigin: true,
-    pathRewrite: {
-        '^/api/generate': '/api/generate',
-    },
+    // NOTE: Do not rewrite the path — forward the original `/api/...` path to the target.
     onProxyReq(proxyReq, req, res) {
         try {
             console.log('Proxying request to:', proxyTarget);
@@ -35,7 +35,7 @@ app.use('/api/generate', createProxyMiddleware({
 
             if (req.body && Object.keys(req.body).length) {
                 const bodyData = JSON.stringify(req.body);
-                console.log('Request body:', req.body);
+                // console.log('Request body:', req.body);
                 // If the proxy request is writable, write the body to it
                 proxyReq.setHeader('Content-Type', 'application/json');
                 proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
@@ -55,4 +55,4 @@ app.use('/api/generate', createProxyMiddleware({
     proxyTimeout: 10000,
 }));
 
-exports.apiGenerateProxy = functions.https.onRequest(app);
+exports.apiGenerateProxy = onRequest(app);
