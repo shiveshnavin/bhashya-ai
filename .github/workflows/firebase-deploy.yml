@@ -23,6 +23,9 @@ jobs:
 
       - name: Create functions .env file
         run: |
+          if [ -z "${{ secrets.PROXY_TARGET }}" ]; then
+            echo "Warning: PROXY_TARGET secret is not set"
+          fi
           echo "PROXY_TARGET=${{ secrets.PROXY_TARGET }}" > functions/.env
 
       - name: Install dependencies
