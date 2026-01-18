@@ -21,6 +21,10 @@ jobs:
         with:
           node-version: 18
 
+      - name: Create functions .env file
+        run: |
+          echo "PROXY_TARGET=${{ secrets.PROXY_TARGET }}" > functions/.env
+
       - name: Install dependencies
         run: npm install && cd functions && npm install
 
