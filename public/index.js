@@ -714,14 +714,16 @@ if (typeof window !== 'undefined') {
                         let isExecuting = false;
                         let executingName = null;
 
-                        // Prefer explicit currentTaskIdx when present
-                        if (typeof data.currentTaskIdx === 'number' && totalTasks > 0 && data.currentTaskIdx >= 0 && data.currentTaskIdx < totalTasks) {
-                            const t = data.tasks[data.currentTaskIdx];
-                            executingName = t && (t.uniqueStepName || t.unique_step_name || t.name);
-                            isExecuting = !!executingName;
-                        }
+                        // Determine currently executing task using executedTasks -> tasks mapping
+                        try {
+                            const execTask = getCurrentlyExecutingTask(data);
+                            if (execTask) {
+                                executingName = execTask.uniqueStepName || execTask.unique_step_name || execTask.name;
+                                isExecuting = true;
+                            }
+                        } catch (e) { /* ignore */ }
 
-                        // If no currentTaskIdx, try to infer running task from executedTasks (status IN_PROGRESS)
+                        // If that failed, fall back to inferring from executedTasks entries with IN_PROGRESS
                         if (!executingName) {
                             const executed = Array.isArray(data.executedTasks) ? data.executedTasks : [];
                             const inProg = executed.find(e => (String(e.status || '').toUpperCase() === 'IN_PROGRESS'));
@@ -1309,6 +1311,7 @@ const stepDescriptions = {
     "generate-script": "Generating the narration script",
     "parse-script-response": "Parsing script output into structured frames and timings",
     "generate-audio-groq": "Synthesizing high-quality voiceover audio",
+    "generate-audio": "Synthesizing high-quality voiceover audio",
     "generate-captions": "Generating subtitle captions from script",
     "generate-image-prompts-hindu": "Building image prompts",
     "generate-image-prompts-rel": "Building image prompts",
@@ -1327,7 +1330,7 @@ const stepDescriptions = {
     "notify": "Sending notifications about generation progress",
     "prepare-schedule-post": "Preparing social post metadata for scheduling",
     "schedule": "Scheduling the post for publishing",
-    "update-topic": "Marking topic as used and updating DB",
+    "update-topic": "Marking topic as completed",
 };
 
 function formatTaskLabel(name) {
@@ -1344,6 +1347,35 @@ function getDefaultDescriptionFor(name) {
     if (key.includes('asset') || key.includes('image') || key.includes('generate-images')) return 'Rendering frames and visual assets...';
     if (key.includes('synth') || key.includes('export')) return 'Merging layers, applying transitions and FX.';
     return '';
+}
+
+// Determine the currently executing task using executedTasks -> tasks mapping.
+// Logic: take the last entry in `executedTasks`, find that task in `tasks`,
+// and return the task immediately after it (the next task) as the current executing task.
+// If there are no executedTasks, return the first task. Returns the task object or null.
+function getCurrentlyExecutingTask(data) {
+    try {
+        const tasks = Array.isArray(data.tasks) ? data.tasks : [];
+        const executed = Array.isArray(data.executedTasks) ? data.executedTasks : [];
+        if (!tasks.length) return null;
+        if (!executed.length) return tasks[0] || null;
+
+        const last = executed[executed.length - 1];
+        const lastKey = last && (last.uniqueStepName || last.unique_step_name || last.name);
+        if (!lastKey) return tasks[0] || null;
+
+        const idx = tasks.findIndex(t => {
+            const n = t && (t.uniqueStepName || t.unique_step_name || t.name);
+            return n === lastKey;
+        });
+
+        if (idx === -1) return tasks[0] || null;
+        if (idx < tasks.length - 1) return tasks[idx + 1] || null;
+        // last executed is the final task — return it as current (or null)
+        return tasks[idx] || null;
+    } catch (e) {
+        return null;
+    }
 }
 
 // Setup Cancel Generation button handler: calls DELETE /api/generate/<id>, hides button, shows stopped UI
