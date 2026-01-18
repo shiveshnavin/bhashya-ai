@@ -845,39 +845,57 @@ if (typeof window !== 'undefined') {
                         const previewRoot = document.querySelector('[data-alt="Abstract blurry neon cyberpunk background"]');
                         const previewVideo = document.getElementById('generation-preview-video');
 
-                        // If document signals a failure, update the progress UI and show a failure banner
+                        // Consolidated status UI handling
                         try {
                             const stoppedEl = document.getElementById('generation-stopped');
                             const isFailed = (statusRawShort === 'FAILED' || statusRawShort === 'ERROR');
+                            const isSuccess = (statusRawShort === 'SUCCESS' || statusRawShort === 'PARTIAL_SUCCESS');
+                            const isInProgress = (statusRawShort === 'IN_PROGRESS');
+                            const isPaused = (statusRawShort === 'PAUSED');
+                            const isSkipped = (statusRawShort === 'SKIPPED');
+
+                            // Reset inline styles/classes
+                            try {
+                                if (barEl) { barEl.style.background = ''; barEl.style.boxShadow = ''; }
+                                if (percentEl) { percentEl.classList.remove('text-red-400', 'text-red-500', 'text-primary'); }
+                            } catch (e) { }
+
                             if (isFailed) {
-                                try {
-                                    if (percentEl) {
-                                        percentEl.textContent = 'Failed';
-                                        percentEl.classList.remove('text-primary');
-                                        percentEl.classList.add('text-red-400');
-                                    }
-                                } catch (e) { }
-                                try {
-                                    if (barEl) {
-                                        barEl.style.width = (typeof pct !== 'undefined' && pct !== null) ? (pct + '%') : '100%';
-                                        barEl.style.background = '#ef4444';
-                                        barEl.style.boxShadow = '0 0 20px rgba(239,68,68,0.4)';
-                                    }
-                                } catch (e) { }
-                                if (stoppedEl) {
-                                    try {
-                                        stoppedEl.classList.remove('hidden');
-                                        const titleEl = stoppedEl.querySelector('.font-bold');
-                                        const subEl = stoppedEl.querySelector('div.text-xs');
-                                        if (titleEl) titleEl.textContent = 'Generation failed';
-                                        if (subEl) subEl.textContent = 'An error occurred during generation.';
-                                    } catch (e) { }
-                                }
+                                try { if (percentEl) { percentEl.textContent = 'Failed'; percentEl.classList.add('text-red-400'); } } catch (e) { }
+                                try { if (barEl) { barEl.style.width = (typeof pct !== 'undefined' && pct !== null) ? (pct + '%') : '100%'; barEl.style.background = '#ef4444'; barEl.style.boxShadow = '0 0 20px rgba(239,68,68,0.4)'; } } catch (e) { }
+                                if (stoppedEl) { try { stoppedEl.classList.remove('hidden'); const titleEl = stoppedEl.querySelector('.font-bold'); const subEl = stoppedEl.querySelector('div.text-xs'); if (titleEl) titleEl.textContent = 'Generation failed'; if (subEl) subEl.textContent = 'An error occurred during generation.'; } catch (e) { } }
                                 try { const dot = document.querySelector('[data-generation-exec-dot]'); if (dot) dot.classList.add('hidden'); } catch (e) { }
+
+                            } else if (isSuccess) {
+                                try { if (percentEl) percentEl.textContent = 'Success'; } catch (e) { }
+                                try { if (barEl) barEl.style.width = '100%'; } catch (e) { }
+                                try { if (stoppedEl) stoppedEl.classList.add('hidden'); } catch (e) { }
+                                try { const dot = document.querySelector('[data-generation-exec-dot]'); if (dot) dot.classList.add('hidden'); } catch (e) { }
+
+                            } else if (isInProgress) {
+                                try { if (percentEl && pct !== null) { percentEl.textContent = pct + '%'; percentEl.classList.add('text-primary'); } } catch (e) { }
+                                try { if (barEl && pct !== null) barEl.style.width = pct + '%'; } catch (e) { }
+                                try { const dot = document.querySelector('[data-generation-exec-dot]'); if (dot) dot.classList.remove('hidden'); } catch (e) { }
+                                try { if (stoppedEl) stoppedEl.classList.add('hidden'); } catch (e) { }
+
+                            } else if (isPaused) {
+                                try { if (percentEl) percentEl.textContent = 'Queued'; } catch (e) { }
+                                try { if (barEl) barEl.style.width = (pct !== null ? (pct + '%') : '0%'); } catch (e) { }
+                                try { const dot = document.querySelector('[data-generation-exec-dot]'); if (dot) dot.classList.add('hidden'); } catch (e) { }
+                                try { if (stoppedEl) stoppedEl.classList.add('hidden'); } catch (e) { }
+
+                            } else if (isSkipped) {
+                                try { if (percentEl) percentEl.textContent = 'Stopped'; } catch (e) { }
+                                try { if (barEl) barEl.style.width = (pct !== null ? (pct + '%') : '0%'); } catch (e) { }
+                                if (stoppedEl) { try { stoppedEl.classList.remove('hidden'); const titleEl = stoppedEl.querySelector('.font-bold'); const subEl = stoppedEl.querySelector('div.text-xs'); if (titleEl) titleEl.textContent = 'Generation stopped'; if (subEl) subEl.textContent = 'This generation was cancelled.'; } catch (e) { } }
+                                try { const dot = document.querySelector('[data-generation-exec-dot]'); if (dot) dot.classList.add('hidden'); } catch (e) { }
+
                             } else {
-                                try { const stoppedEl = document.getElementById('generation-stopped'); if (stoppedEl) stoppedEl.classList.add('hidden'); } catch (e) { }
+                                try { if (percentEl && pct !== null) percentEl.textContent = pct + '%'; } catch (e) { }
+                                try { if (barEl && pct !== null) barEl.style.width = pct + '%'; } catch (e) { }
+                                try { if (stoppedEl) stoppedEl.classList.add('hidden'); } catch (e) { }
                             }
-                        } catch (e) { /* ignore failure UI wiring errors */ }
+                        } catch (e) { /* ignore status wiring errors */ }
 
                         if (previewVideo && previewRoot) {
                             if (statusRawShort !== 'SUCCESS' && statusRawShort !== 'PARTIAL_SUCCESS') {
@@ -1170,7 +1188,7 @@ if (typeof window !== 'undefined') {
                         try { const cb = document.getElementById('cancel-generation-btn'); if (cb) cb.classList.add('hidden'); } catch (e) { }
 
                         // once complete, unsubscribe from realtime updates (we still expose unsubscribe for debugging)
-                        try { if (window.__generationSnapshotUnsubscribe) { window.__generationSnapshotUnsubscribe(); } } catch (e) { /* ignore */ }
+                        // try { if (window.__generationSnapshotUnsubscribe) { window.__generationSnapshotUnsubscribe(); } } catch (e) { /* ignore */ }
                         // no need to continue with other rendering for completed status
                     }
                 } catch (e) { /* ignore status handling */ }
@@ -1292,8 +1310,9 @@ const stepDescriptions = {
     "parse-script-response": "Parsing script output into structured frames and timings",
     "generate-audio-groq": "Synthesizing high-quality voiceover audio",
     "generate-captions": "Generating subtitle captions from script",
-    "generate-image-prompts-hindu": "Building image prompts for mythological style",
-    "generate-image-prompts-default": "Building default image prompts for scenes",
+    "generate-image-prompts-hindu": "Building image prompts",
+    "generate-image-prompts-rel": "Building image prompts",
+    "generate-image-prompts-default": "Building image prompts",
     "generate-images-pollinations": "Generating visual assets using Pollinations",
     "prep-animation": "Preparing animation parameters and keyframes",
     "generate-depth-animation": "Generating depth-aware parallax animations",
