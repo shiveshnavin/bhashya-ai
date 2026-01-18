@@ -22,11 +22,13 @@ jobs:
           node-version: 18
 
       - name: Create functions .env file
+        env:
+          PROXY_TARGET: ${{ secrets.PROXY_TARGET }}
         run: |
-          if [ -z "${{ secrets.PROXY_TARGET }}" ]; then
+          if [ -z "$PROXY_TARGET" ]; then
             echo "Warning: PROXY_TARGET secret is not set"
           fi
-          echo "PROXY_TARGET=${{ secrets.PROXY_TARGET }}" > functions/.env
+          echo "PROXY_TARGET=${PROXY_TARGET}" > functions/.env
 
       - name: Install dependencies
         run: npm install && cd functions && npm install
