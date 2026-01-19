@@ -2,6 +2,8 @@
 
 Bhashya AI turns short idea prompts and long-form source content into ready-to-publish social reels, short videos, and structured scripts. It focuses on rapid content generation with configurable output settings so creators and  teams can go from idea → script → rendered media in minutes.
 
+DEMO: https://bhashya-ai.web.app/
+
 <img width="687" height="898" alt="image" src="https://github.com/user-attachments/assets/8b7b758f-c0c7-49ab-b7bc-9f72a89ce55f" />
 
 ## What Bhashya AI Does
