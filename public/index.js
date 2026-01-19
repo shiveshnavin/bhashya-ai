@@ -692,6 +692,24 @@ if (typeof window !== 'undefined') {
                 const statusEl = document.querySelector('[data-generation-status]');
                 if (statusEl) statusEl.textContent = data.status || 'UNKNOWN';
 
+                // Populate captions (replace newlines with <br>) — escape HTML first
+                try {
+                    const captionEl = document.querySelector('[data-generation-caption]');
+                    const captionSmallEl = document.querySelector('[data-generation-caption-small]');
+                    const escapeHtml = (str) => String(str || '')
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#39;');
+                    if (captionEl && typeof data.output?.caption !== 'undefined') {
+                        captionEl.innerHTML = escapeHtml(String(data.output?.caption)).replace(/\n/g, '<br>');
+                    }
+                    if (captionSmallEl && typeof data.output?.caption_small !== 'undefined') {
+                        captionSmallEl.innerHTML = escapeHtml(String(data.output?.caption_small)).replace(/\n/g, '<br>');
+                    }
+                } catch (e) { /* ignore caption wiring errors */ }
+
                 // Update page title and hide current-step when finished
                 try {
                     const pageTitle = document.querySelector('main h1');
