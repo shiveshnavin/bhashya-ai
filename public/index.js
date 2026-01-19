@@ -8,6 +8,7 @@ function setupFormListeners() {
         duration: 1,
         language: 'english',
         speech_quality: 'neural',
+        graphics_quality: 'low',
         resolution: '360p',
         delivery_email: ''
     };
@@ -18,6 +19,7 @@ function setupFormListeners() {
     setupToggleActive('[data-theme]', 'data-theme', 'theme', null, obj);
     setupToggleActive('[data-resolution]', 'data-resolution', 'resolution', null, obj);
     setupToggleActive('[data-speech-quality]', 'data-speech-quality', 'speech_quality', null, obj);
+    setupToggleActive('[data-graphics-quality]', 'data-graphics-quality', 'graphics_quality', null, obj);
     setupToggleActive('[data-duration]', 'data-duration', 'duration', v => Number(v), obj);
     setupToggleActive('[data-language]', 'data-language', 'language', null, obj);
 
@@ -207,13 +209,14 @@ function setupFormListeners() {
     }
 
     // --- Premium feature locking ---
-    const premiumSelectors = ['[data-resolution]', '[data-speech-quality]', '[data-duration]'];
+    const premiumSelectors = ['[data-resolution]', '[data-speech-quality]', '[data-graphics-quality]', '[data-duration]'];
     const premiumButtons = Array.from(document.querySelectorAll(premiumSelectors.join(',')));
     // Values that are allowed for free (not premium)
     const exemptValues = {
         'data-resolution': ['360p'],
         'data-speech-quality': ['neural'],
-        'data-duration': ['1']
+        'data-duration': ['1'],
+        'data-graphics-quality': ['low']
     };
 
     function isExempt(btn) {
@@ -318,6 +321,7 @@ function setupToggleActive(selector, valueKey, objKey, valueTransform, obj) {
         orientation: 'flex-1 flex flex-col items-center gap-2 py-3 rounded-lg border-2 border-primary bg-primary/10 text-primary',
         resolution: 'flex-1 py-2 text-xs font-bold rounded bg-primary/20 border border-primary/50 text-primary',
         speech_quality: 'py-2 text-xs font-bold rounded bg-primary/20 border border-primary/50 text-primary',
+        graphics_quality: 'py-2 text-xs font-bold rounded bg-primary/20 border border-primary/50 text-primary',
         duration: 'flex-1 py-2 text-sm font-bold rounded-lg bg-primary text-background-dark',
         theme: 'flex-1 py-2 text-xs font-bold rounded bg-primary/20 border border-primary/50 text-primary',
         language: 'text-sm font-semibold text-primary bg-transparent px-2 py-1 rounded',
@@ -326,6 +330,7 @@ function setupToggleActive(selector, valueKey, objKey, valueTransform, obj) {
         orientation: 'flex-1 flex flex-col items-center gap-2 py-3 rounded-lg border-2 border-transparent bg-slate-100 dark:bg-background-dark hover:bg-slate-200 dark:hover:bg-border-muted transition-all',
         resolution: 'flex-1 py-2 text-xs font-bold rounded bg-slate-100 dark:bg-background-dark border border-transparent',
         speech_quality: 'py-2 text-xs font-bold rounded bg-slate-100 dark:bg-background-dark border border-transparent',
+        graphics_quality: 'py-2 text-xs font-bold rounded bg-slate-100 dark:bg-background-dark border border-transparent',
         duration: 'flex-1 py-2 text-sm font-bold rounded-lg bg-slate-100 dark:bg-background-dark text-slate-500',
         theme: 'flex-1 py-2 text-xs font-bold rounded bg-slate-100 dark:bg-background-dark border border-transparent',
         language: 'text-sm font-semibold text-slate-500 bg-transparent px-2 py-1 rounded',
@@ -1317,6 +1322,7 @@ const stepDescriptions = {
     "generate-image-prompts-rel": "Building image prompts",
     "generate-image-prompts-default": "Building image prompts",
     "generate-images-pollinations": "Generating visual assets using Pollinations",
+    "generate-images": "Generating visual assets using Pollinations",
     "prep-animation": "Preparing animation parameters and keyframes",
     "generate-depth-animation": "Generating depth-aware parallax animations",
     "load-template": "Loading video template and layout",
