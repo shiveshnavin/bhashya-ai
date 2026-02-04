@@ -1,5 +1,6 @@
 {
-  "hosting": {
+  "hosting": [{
+    "site": "ai-mediagen",
     "public": "public",
     "ignore": [
       "firebase.json",
@@ -16,7 +17,7 @@
         "function": "apiGenerateProxy"
       }
     ]
-  },
+  }],
   "functions": {
     "source": "functions",
     "runtime": "nodejs22",
