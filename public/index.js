@@ -990,7 +990,7 @@ if (typeof window !== 'undefined') {
                 try {
                     const raw = (data && typeof data.raw === 'object') ? data.raw : null;
                     if (raw) {
-                        const rawFields = ['delivery_email', 'duration', 'language', 'orientation', 'prompt', 'resolution', 'speech_quality', 'theme', 'token'];
+                        const rawFields = ['delivery_email', 'duration', 'language', 'orientation', 'video_type', 'prompt', 'resolution', 'speech_quality', 'theme', 'token'];
                         rawFields.forEach(k => {
                             try {
                                 const el = document.querySelector(`[data-raw-${k}]`);
@@ -1343,6 +1343,7 @@ const stepDescriptions = {
     "generate-images": "Generating visual assets using Pollinations",
     "prep-animation": "Preparing animation parameters and keyframes",
     "generate-depth-animation": "Generating depth-aware parallax animations",
+    "generate-avatar-animation": "Generating avatar animations",
     "load-template": "Loading video template and layout",
     "load-audio-assets-meta": "Loading metadata for audio assets",
     "select-assets": "Selecting the best matching assets for each shot",
