@@ -65,10 +65,18 @@ function setupFormListeners() {
     // Delivery Email
     const emailInput = document.querySelector('[data-delivery-email]');
     if (emailInput) {
-        // initialize object from prefilled value (avoid false-invalid state on load)
+        // Try to prefill from localStorage first, then from any hardcoded/prefilled value
         try {
+            const stored = (() => {
+                try { return localStorage.getItem('bhashya_delivery_email'); } catch (e) { return null; }
+            })();
             const initial = (emailInput.value || '').trim();
-            if (initial) obj.delivery_email = initial;
+            if (!initial && stored) {
+                try { emailInput.value = stored; } catch (e) { }
+                obj.delivery_email = (stored || '').trim();
+            } else if (initial) {
+                obj.delivery_email = initial;
+            }
         } catch (e) { }
         // ensure any lingering error UI is cleared on load
         const _emailErrorInit = document.getElementById('delivery-email-error');
@@ -79,7 +87,8 @@ function setupFormListeners() {
         emailInput.setAttribute('aria-invalid', 'false');
         const emailErrorEl = document.getElementById('delivery-email-error');
         emailInput.addEventListener('input', () => {
-            obj.delivery_email = emailInput.value;
+            obj.delivery_email = (emailInput.value || '').trim();
+            try { localStorage.setItem('bhashya_delivery_email', obj.delivery_email || ''); } catch (e) { }
             // clear inline error and visual highlight
             if (emailErrorEl) emailErrorEl.classList.add('hidden');
             emailInput.classList.remove('ring-2', 'ring-red-500', 'border-red-500');
