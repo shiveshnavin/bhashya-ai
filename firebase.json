@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "inreelio",
     "public": "public",
     "ignore": [
       "firebase.json",
@@ -13,6 +14,10 @@
       },
       {
         "source": "/api/generate/**",
+        "function": "apiGenerateProxy"
+      },
+      {
+        "source": "/api/**",
         "function": "apiGenerateProxy"
       }
     ]

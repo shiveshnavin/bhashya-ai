@@ -11,8 +11,53 @@ function setupFormListeners() {
         speech_quality: 'neural',
         graphics_quality: 'low',
         resolution: '360p',
-        delivery_email: ''
+        delivery_email: '',
+        avatarId: null
     };
+
+    // expose form object for external scripts to update (e.g. applyReturnState)
+    window.__formObj = obj;
+
+    // helper to select avatar by id programmatically; defined here so it has access to obj and UI helpers
+    window.selectAvatarById = async function (id) {
+        try {
+            if (!id) {
+                obj.avatarId = null;
+                if (typeof updateSelectedAvatarUI === 'function') updateSelectedAvatarUI(null);
+                return null;
+            }
+            // ensure avatars cache present
+            if (!window.__avatarsCache || ((Date.now() - (window.__avatarsCache_ts || 0)) > 3600000)) {
+                const r = await fetch('/api/avatars');
+                if (!r.ok) throw new Error('Failed to fetch avatars');
+                window.__avatarsCache = await r.json();
+                window.__avatarsCache_ts = Date.now();
+            }
+            const avatars = Array.isArray(window.__avatarsCache) ? window.__avatarsCache : [];
+            const found = avatars.find(a => String(a.id) === String(id));
+            if (found) {
+                obj.avatarId = found.id;
+                if (typeof updateSelectedAvatarUI === 'function') updateSelectedAvatarUI(found);
+                return found;
+            } else {
+                // not found: try to fetch fresh list
+                const r2 = await fetch('/api/avatars');
+                if (!r2.ok) throw new Error('Failed to fetch avatars');
+                const fresh = await r2.json();
+                window.__avatarsCache = fresh; window.__avatarsCache_ts = Date.now();
+                const found2 = Array.isArray(fresh) ? fresh.find(a => String(a.id) === String(id)) : null;
+                if (found2) { obj.avatarId = found2.id; if (typeof updateSelectedAvatarUI === 'function') updateSelectedAvatarUI(found2); return found2; }
+            }
+            return null;
+        } catch (e) { console.warn('selectAvatarById error', e); return null; }
+    };
+
+    // on load: try to preselect avatar from localStorage
+    try {
+        const storedAvatar = (() => { try { return localStorage.getItem('bhashya_selected_avatar'); } catch (e) { return null; } })();
+        if (storedAvatar) { selectAvatarById(storedAvatar).catch(() => {}); }
+    } catch (e) { }
+
 
 
     // Use setupToggleActive for all applicable button groups
@@ -24,6 +69,12 @@ function setupFormListeners() {
     setupToggleActive('[data-duration]', 'data-duration', 'duration', v => Number(v), obj);
     setupToggleActive('[data-language]', 'data-language', 'language', null, obj);
     setupToggleActive('[data-video-type]', 'data-video-type', 'video_type', null, obj);
+
+    // when avatar video-type is clicked, open avatar chooser
+    try {
+        const avatarBtn = document.querySelector('[data-video-type="avatar"]');
+        if (avatarBtn) avatarBtn.addEventListener('click', () => { try { setTimeout(() => { showAvatarChooser(); }, 60); } catch (e) { /* ignore */ } });
+    } catch (e) { }
 
     // Content Category Select
     const categorySelect = document.querySelector('[data-content-category]');
@@ -46,6 +97,11 @@ function setupFormListeners() {
     // only in the frontend / HTML (do not send to server automatically).
     const _urlParams = new URLSearchParams(window.location.search || '');
     const _urlToken = (_urlParams.get('token') || '').trim();
+    // Payment return params (ORDERID/status) may be present when returning from payment provider.
+    const _urlOrderId = ((_urlParams.get('ORDERID') || _urlParams.get('ORDER_ID') || _urlParams.get('orderId') || _urlParams.get('order_id') || _urlParams.get('order')) || '').trim();
+    const _urlStatus = ((_urlParams.get('status') || _urlParams.get('STATUS') || _urlParams.get('paymentStatus')) || '').trim();
+    if (_urlOrderId) { obj.ORDERID = _urlOrderId; obj.orderId = _urlOrderId; }
+    if (_urlStatus) { obj.status = _urlStatus; }
     if (tokenInput) {
         if (_urlToken) {
             try {
@@ -64,25 +120,34 @@ function setupFormListeners() {
 
     // Delivery Email
     const emailInput = document.querySelector('[data-delivery-email]');
+    const passwordInput = document.querySelector('[data-delivery-password]');
+
+    // Helper: update header credits display
+    async function updateHeaderCredits(emailVal, pwdVal) {
+        try {
+            const cc = document.getElementById('credits-count');
+            if (!emailVal) { if (cc) { cc.textContent = 'Credits: —'; cc.classList.remove('hidden'); } return; }
+            let url = '/api/credits?email=' + encodeURIComponent(emailVal);
+            if (pwdVal) url += '&password=' + encodeURIComponent(pwdVal);
+            const resp = await fetch(url, { method: 'GET' });
+            if (!resp.ok) { if (cc) { cc.textContent = 'Credits: —'; cc.classList.remove('hidden'); } return; }
+            const data = await resp.json();
+            const count = (typeof data.credits !== 'undefined') ? Number(data.credits) : Number((data && data.available) || 0) || 0;
+            if (cc) { cc.textContent = 'Credits: ' + (Number.isFinite(count) ? count : 0); cc.classList.remove('hidden'); }
+        } catch (e) { try { const cc = document.getElementById('credits-count'); if (cc) { cc.textContent = 'Credits: —'; cc.classList.remove('hidden'); } } catch (e2) {} }
+    }
+
     if (emailInput) {
         // Try to prefill from localStorage first, then from any hardcoded/prefilled value
         try {
-            const stored = (() => {
-                try { return localStorage.getItem('bhashya_delivery_email'); } catch (e) { return null; }
-            })();
+            const stored = (() => { try { return localStorage.getItem('bhashya_delivery_email'); } catch (e) { return null; } })();
             const initial = (emailInput.value || '').trim();
-            if (!initial && stored) {
-                try { emailInput.value = stored; } catch (e) { }
-                obj.delivery_email = (stored || '').trim();
-            } else if (initial) {
-                obj.delivery_email = initial;
-            }
+            if (!initial && stored) { try { emailInput.value = stored; } catch (e) { } obj.delivery_email = (stored || '').trim(); }
+            else if (initial) { obj.delivery_email = initial; }
         } catch (e) { }
         // ensure any lingering error UI is cleared on load
         const _emailErrorInit = document.getElementById('delivery-email-error');
-        if (_emailErrorInit) {
-            _emailErrorInit.classList.add('hidden');
-        }
+        if (_emailErrorInit) { _emailErrorInit.classList.add('hidden'); }
         emailInput.classList.remove('ring-2', 'ring-red-500', 'border-red-500');
         emailInput.setAttribute('aria-invalid', 'false');
         const emailErrorEl = document.getElementById('delivery-email-error');
@@ -93,7 +158,70 @@ function setupFormListeners() {
             if (emailErrorEl) emailErrorEl.classList.add('hidden');
             emailInput.classList.remove('ring-2', 'ring-red-500', 'border-red-500');
             emailInput.setAttribute('aria-invalid', 'false');
+            // update header credits when email changes
+            try { const pwd = (passwordInput && passwordInput.value) ? (passwordInput.value || '').trim() : (obj.delivery_password || ''); updateHeaderCredits(obj.delivery_email, pwd); } catch (e) {}
         });
+    }
+
+    // Password: prefill from localStorage and persist on change per user request
+    if (passwordInput) {
+        try {
+            const storedPwd = (() => { try { return localStorage.getItem('bhashya_delivery_password'); } catch (e) { return null; } })();
+            if (storedPwd && !passwordInput.value) { try { passwordInput.value = storedPwd; } catch (e) {} obj.delivery_password = storedPwd; }
+        } catch (e) { }
+        passwordInput.addEventListener('input', () => {
+            obj.delivery_password = (passwordInput.value || '').trim();
+            try { if (obj.delivery_password) localStorage.setItem('bhashya_delivery_password', obj.delivery_password); else localStorage.removeItem('bhashya_delivery_password'); } catch (e) { }
+            // update header credits when password changes
+            try { const emailVal = obj.delivery_email || (emailInput ? (emailInput.value || '').trim() : ''); updateHeaderCredits(emailVal, obj.delivery_password); } catch (e) {}
+        });
+        // initial update of header credits on load if email present
+        try { const initialEmail = obj.delivery_email || (emailInput ? (emailInput.value || '').trim() : ''); if (initialEmail) setTimeout(() => updateHeaderCredits(initialEmail, obj.delivery_password), 50); } catch (e) {}
+
+        // Reset password button handler
+        try {
+            const resetBtn = document.getElementById('reset-password-btn');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', async () => {
+                    try {
+                        const emailVal = obj.delivery_email || (emailInput ? (emailInput.value || '').trim() : '');
+                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        if (!emailVal || !emailRegex.test(emailVal)) {
+                            const errEl = document.getElementById('delivery-email-error');
+                            if (errEl) { errEl.textContent = 'Enter a valid email to reset password'; errEl.classList.remove('hidden'); }
+                            if (emailInput) { emailInput.classList.add('ring-2', 'ring-red-500', 'border-red-500'); }
+                            return;
+                        }
+                        if (!confirm('Send password reset link to ' + emailVal + '?')) return;
+                        resetBtn.disabled = true;
+                        const resp = await fetch('/api/password-reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: emailVal }) });
+                        if (resp.ok) { alert('Password reset link sent to ' + emailVal); } else {
+                            const body = await resp.json().catch(()=>null);
+                            alert('Failed to send reset link: ' + (body && (body.error || JSON.stringify(body)) || resp.statusText));
+                        }
+                    } catch (e) { alert('Error sending reset request: ' + (e && e.message || e)); } finally { try { resetBtn.disabled = false; } catch (e) {} }
+                });
+            }
+        } catch (e) {}
+
+        // preload avatars into cache and apply selected avatar if present
+        (async function preloadAvatars() {
+            try {
+                const r = await fetch('/api/avatars');
+                if (r.ok) {
+                    window.__avatarsCache = await r.json();
+                    window.__avatarsCache_ts = Date.now();
+                }
+            } catch (e) { /* ignore */ }
+            try {
+                const storedAvatar = (() => { try { return localStorage.getItem('bhashya_selected_avatar'); } catch (e) { return null; } })();
+                if (storedAvatar) {
+                    const arr = Array.isArray(window.__avatarsCache) ? window.__avatarsCache : [];
+                    const found = arr.find(a => String(a.id) === String(storedAvatar));
+                    if (found) { obj.avatarId = found.id; updateSelectedAvatarUI(found); }
+                }
+            } catch (e) {}
+        })();
     }
 
     // Token (example: set from elsewhere)
@@ -174,6 +302,22 @@ function setupFormListeners() {
                 // ensure prompt included
                 payload.prompt = payload.prompt || (promptEl ? promptEl.value : '');
 
+                // require account password to protect credits
+                const pwdVal = (payload.delivery_password || payload.password || (passwordInput ? (passwordInput.value || '').trim() : ''));
+                if (!pwdVal) {
+                    // restore button state
+                    if (spinner) spinner.classList.add('hidden');
+                    if (genText) genText.classList.remove('hidden');
+                    genBtn.disabled = false;
+                    const pwdErr = document.getElementById('delivery-password-error');
+                    if (pwdErr) { pwdErr.textContent = 'Password required to generate'; pwdErr.classList.remove('hidden'); }
+                    return;
+                }
+                payload.delivery_password = pwdVal;
+
+                // ensure avatar selection is included in payload
+                if (obj.avatarId) payload.avatarId = obj.avatarId;
+
                 const res = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -181,13 +325,25 @@ function setupFormListeners() {
                 });
 
                 if (!res.ok) {
+                    if (res.status === 402) {
+                        let bodyErr = null;
+                        try { bodyErr = await res.json(); } catch (e) { bodyErr = null; }
+                        const requiredCredits = (bodyErr && (bodyErr.requiredCredits || bodyErr.required)) || null;
+                        const availableCredits = (bodyErr && (bodyErr.availableCredits || bodyErr.available)) || null;
+                        const packs = (bodyErr && bodyErr.packs) || [];
+                        // restore button state
+                        if (spinner) spinner.classList.add('hidden');
+                        if (genText) genText.classList.remove('hidden');
+                        genBtn.disabled = false;
+                        showPurchaseModal(packs, requiredCredits, availableCredits, payload);
+                        return;
+                    }
                     let errMsg = res.statusText || 'Request failed';
                     try {
                         const errBody = await res.json();
                         errMsg = errBody.reason || errBody.error || errBody.message || JSON.stringify(errBody);
                     } catch (e) {
-                        const text = await res.text();
-                        errMsg = text || errMsg;
+                        try { const text = await res.text(); errMsg = text || errMsg; } catch (e2) { }
                     }
                     // restore button state
                     if (spinner) spinner.classList.add('hidden');
@@ -217,6 +373,284 @@ function setupFormListeners() {
                 genBtn.disabled = false;
             }
         });
+    }
+
+    // purchase modal: show packs and redirect to payment
+    function hidePurchaseModal() {
+        const m = document.getElementById('purchase-modal');
+        if (m) m.remove();
+    }
+
+    function showPurchaseModal(packs, requiredCredits, availableCredits, stateObj) {
+        try {
+            hidePurchaseModal();
+            const emailEl = document.querySelector('[data-delivery-email]');
+            const emailVal = emailEl ? (emailEl.value || '').trim() : '';
+            const overlay = document.createElement('div');
+            overlay.id = 'purchase-modal';
+            overlay.style = 'position:fixed;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);z-index:9999;padding:20px;backdrop-filter:blur(6px);';
+            const box = document.createElement('div');
+            box.style = 'background:#0b1220;color:#e6eef5;border-radius:12px;padding:20px;max-width:900px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.03);';
+
+            const header = document.createElement('div');
+            header.style = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;';
+            const title = document.createElement('div');
+            title.innerText = 'Buy Credits to Continue';
+            title.style = 'font-weight:700;font-size:18px;color:#e6eef5;';
+            const closeBtn = document.createElement('button');
+            closeBtn.innerText = 'Close';
+            closeBtn.style = 'background:transparent;border:none;color:#94a3b8;font-weight:600;cursor:pointer;padding:6px 8px;border-radius:6px;';
+            closeBtn.onclick = hidePurchaseModal;
+            header.appendChild(title);
+            header.appendChild(closeBtn);
+            box.appendChild(header);
+
+            const info = document.createElement('div');
+            info.style = 'margin-bottom:12px;color:#cbd5e1;';
+            info.innerText = 'Required: ' + (requiredCredits || 0) + ' credits. You have: ' + (availableCredits || 0) + ' credits.';
+            box.appendChild(info);
+
+            // Packs grid
+            const grid = document.createElement('div');
+            grid.style = 'display:grid;grid-template-columns:repeat(auto-fit, minmax(180px,1fr));gap:12px;margin-bottom:12px;';
+
+            let packList = Array.isArray(packs) ? packs.slice() : [];
+            if (!packList.length) {
+                // fallback placeholder packs so user can still buy if none configured
+                packList = [
+                    { id: 'starter', label: 'Starter', credits: 5, amount: '49' },
+                    { id: 'growth', label: 'Growth', credits: 20, amount: '179' },
+                    { id: 'pro', label: 'Pro', credits: 60, amount: '499' }
+                ];
+            }
+
+            let selectedPackId = null;
+            const cardEls = {};
+
+            function markSelected(pid) {
+                selectedPackId = pid;
+                Object.keys(cardEls).forEach(k => {
+                    const el = cardEls[k];
+                    if (!el) return;
+                    if (k === pid) {
+                        el.style.border = '2px solid #00c2c2';
+                        el.querySelector('.pack-select-dot')?.classList.remove('hidden');
+                    } else {
+                        el.style.border = '1px solid rgba(255,255,255,0.03)';
+                        el.querySelector('.pack-select-dot')?.classList.add('hidden');
+                    }
+                });
+            }
+
+            async function buyPackById(pid) {
+                try {
+                    const pack = packList.find(p => (p.id || p._id || p.name || p.packId || p.pack) === pid);
+                    const pwdVal = (passwordInput ? (passwordInput.value || '').trim() : (obj.delivery_password || ''));
+                    const body = { email: emailVal, name: '', packId: pid, credits: pack && (pack.credits || pack.amount) || null, stateObj, password: pwdVal };
+                    const resp = await fetch('/api/create-payment-link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                    if (!resp.ok) { const t = await resp.text().catch(() => resp.statusText); alert('Failed to create payment link: ' + t); return; }
+                    const data = await resp.json();
+                    console.log('Payment link response', data);
+                    const url = data.paymentUrl || data.payment_url || data.url || data.redirect || (data.payment && data.payment.url);
+                    if (url) { window.location.href = url; return; }
+                    alert('Payment link not returned');
+                } catch (e) { alert('Error creating payment link: ' + (e && e.message || e)); }
+            }
+
+            packList.forEach(p => {
+                const pid = p.id || p._id || p.name || p.packId || p.pack || '';
+                const card = document.createElement('button');
+                card.type = 'button';
+                card.style = 'text-align:left;border-radius:8px;padding:14px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03);cursor:pointer;display:flex;flex-direction:column;gap:8px;min-height:100px;';
+                card.setAttribute('aria-pressed', 'false');
+
+                const topRow = document.createElement('div');
+                topRow.style = 'display:flex;justify-content:space-between;align-items:center;gap:8px;';
+                const lbl = document.createElement('div'); lbl.style = 'font-weight:700;color:#e6eef5;'; lbl.innerText = (p.label || p.name || pid || 'Pack');
+                const dot = document.createElement('div'); dot.className = 'pack-select-dot'; dot.style = 'width:12px;height:12px;border-radius:999px;background:#00c2c2;';
+                // hide by default
+                dot.classList.add('hidden');
+                topRow.appendChild(lbl); topRow.appendChild(dot);
+
+                const mid = document.createElement('div'); mid.style = 'color:#9fb0be;font-size:13px;';
+                const creditsText = (typeof p.credits !== 'undefined' && p.credits !== null) ? String(p.credits) + ' credits' : (p.amount ? (p.amount + ' credits') : '—');
+                const priceText = (typeof p.amount !== 'undefined' && p.amount !== null) ? (p.currency ? (p.currency + ' ' + p.amount) : (p.amount + '')) : '';
+                mid.innerText = creditsText + (priceText ? (' • ' + priceText) : '');
+
+                const buyRow = document.createElement('div'); buyRow.style = 'display:flex;justify-content:flex-end;';
+                const buyBtn = document.createElement('button'); buyBtn.type = 'button'; buyBtn.innerText = 'Buy'; buyBtn.style = 'background:#00c2c2;color:#071116;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:700;';
+                buyBtn.addEventListener('click', (ev) => { ev.stopPropagation(); buyPackById(pid); });
+                buyRow.appendChild(buyBtn);
+
+                card.appendChild(topRow); card.appendChild(mid); card.appendChild(buyRow);
+
+                card.addEventListener('click', () => { markSelected(pid); });
+                grid.appendChild(card);
+                cardEls[pid] = card;
+            });
+
+            box.appendChild(grid);
+
+            // footer actions
+            const footer = document.createElement('div'); footer.style = 'display:flex;justify-content:flex-end;gap:8px;margin-top:8px;';
+            const cancelBtn = document.createElement('button'); cancelBtn.type = 'button'; cancelBtn.innerText = 'Cancel'; cancelBtn.style = 'background:transparent;border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:8px 12px;border-radius:6px;cursor:pointer;'; cancelBtn.onclick = hidePurchaseModal;
+            const buySelectedBtn = document.createElement('button'); buySelectedBtn.type = 'button'; buySelectedBtn.innerText = 'Buy Selected'; buySelectedBtn.style = 'background:#00c2c2;color:#071116;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:700;';
+            buySelectedBtn.addEventListener('click', () => {
+                if (!selectedPackId) { alert('Please select a pack to buy'); return; }
+                buyPackById(selectedPackId);
+            });
+            footer.appendChild(cancelBtn); footer.appendChild(buySelectedBtn);
+            box.appendChild(footer);
+
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+        } catch (e) { console.warn('showPurchaseModal error', e); }
+    }
+
+    // Avatar chooser modal
+    async function showAvatarChooser() {
+        try {
+            hidePurchaseModal();
+            const emailEl = document.querySelector('[data-delivery-email]');
+            const emailVal = emailEl ? (emailEl.value || '').trim() : '';
+            let avatars = window.__avatarsCache;
+            if (!avatars || ((Date.now() - (window.__avatarsCache_ts || 0)) > 3600000)) {
+                const r = await fetch('/api/avatars');
+                if (!r.ok) { alert('Failed to load avatars'); return; }
+                avatars = await r.json(); window.__avatarsCache = avatars; window.__avatarsCache_ts = Date.now();
+            }
+
+            const overlay = document.createElement('div');
+            overlay.id = 'avatar-modal';
+            overlay.style = 'position:fixed;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);z-index:9999;padding:20px;backdrop-filter:blur(6px);';
+            const box = document.createElement('div');
+            box.style = 'background:#0b1220;color:#e6eef5;border-radius:12px;padding:20px;max-width:900px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.03);';
+            const header = document.createElement('div'); header.style = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;';
+            const title = document.createElement('div'); title.innerText = 'Choose Avatar'; title.style = 'font-weight:700;font-size:18px;color:#e6eef5;';
+            const closeBtn = document.createElement('button'); closeBtn.innerText = 'Close'; closeBtn.style = 'background:transparent;border:none;color:#94a3b8;font-weight:600;cursor:pointer;padding:6px 8px;border-radius:6px;'; closeBtn.onclick = () => { overlay.remove(); };
+            header.appendChild(title); header.appendChild(closeBtn); box.appendChild(header);
+
+            const grid = document.createElement('div'); grid.style = 'display:grid;grid-template-columns:repeat(auto-fit, minmax(180px,1fr));gap:12px;margin-bottom:12px;';
+            const list = Array.isArray(avatars) ? avatars.slice() : [];
+            if (!list.length) { const p = document.createElement('div'); p.style='color:#cbd5e1'; p.textContent='No avatars available.'; box.appendChild(p); overlay.appendChild(box); document.body.appendChild(overlay); return; }
+            list.forEach(a => {
+                const id = a.id || a._id || '';
+                const card = document.createElement('div'); card.style='background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03);padding:10px;border-radius:8px;display:flex;flex-direction:column;gap:8px;';
+                const img = document.createElement('img'); img.style='width:100%;height:120px;object-fit:cover;border-radius:6px;'; img.src = a.cover_path || a.path || (a.cover || ''); img.alt = a.name || id;
+                const name = document.createElement('div'); name.style='font-weight:700;color:#e6eef5;'; name.textContent = a.name || id;
+                const chooseRow = document.createElement('div'); chooseRow.style='display:flex;justify-content:flex-end;';
+                const chooseBtn = document.createElement('button'); chooseBtn.type='button'; chooseBtn.innerText='Choose'; chooseBtn.style='background:#00c2c2;color:#071116;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:700;';
+                chooseBtn.addEventListener('click', (ev) => { ev.stopPropagation(); try { obj.avatarId = id; try { localStorage.setItem('bhashya_selected_avatar', id); } catch (e) {} if (typeof updateSelectedAvatarUI === 'function') updateSelectedAvatarUI(a); overlay.remove(); } catch (e) { console.warn(e); }});
+                chooseRow.appendChild(chooseBtn);
+                card.appendChild(img); card.appendChild(name); card.appendChild(chooseRow);
+                grid.appendChild(card);
+            });
+            box.appendChild(grid); overlay.appendChild(box); document.body.appendChild(overlay);
+        } catch (e) { console.warn('showAvatarChooser error', e); }
+    }
+
+    function updateSelectedAvatarUI(avatar) {
+        try {
+            // update the Video Type avatar button to show a thumbnail
+            const avatarBtn = document.querySelector('[data-video-type="avatar"]');
+            if (avatarBtn) {
+                let thumb = avatarBtn.querySelector('#video-type-avatar-thumb');
+                if (!thumb) {
+                    thumb = document.createElement('img');
+                    thumb.id = 'video-type-avatar-thumb';
+                    thumb.style = 'width:72px;height:72px;object-fit:cover;border-radius:8px;margin-bottom:6px;display:block;';
+                    try { avatarBtn.insertBefore(thumb, avatarBtn.firstChild); } catch (e) { try { avatarBtn.appendChild(thumb); } catch (e2) {} }
+                }
+                if (avatar && (avatar.cover_path || avatar.path || avatar.cover)) {
+                    thumb.src = avatar.cover_path || avatar.path || avatar.cover;
+                    thumb.alt = avatar.name || avatar.id || '';
+                    thumb.style.display = 'block';
+                } else {
+                    thumb.src = '';
+                    thumb.alt = '';
+                    thumb.style.display = 'none';
+                }
+            }
+        } catch (e) { }
+    }
+
+    // Account / Credits modal
+    function showAccountModal(email, credits, packs) {
+        try {
+            // reuse purchase modal style but include email and logout
+            const overlay = document.createElement('div');
+            overlay.id = 'account-modal';
+            overlay.style = 'position:fixed;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);z-index:9999;padding:20px;backdrop-filter:blur(6px);';
+            const box = document.createElement('div');
+            box.style = 'background:#0b1220;color:#e6eef5;border-radius:12px;padding:20px;max-width:900px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.03);';
+
+            const header = document.createElement('div');
+            header.style = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;';
+            const title = document.createElement('div');
+            title.innerText = 'Account';
+            title.style = 'font-weight:700;font-size:18px;color:#e6eef5;';
+            const closeBtn = document.createElement('button');
+            closeBtn.innerText = 'Close';
+            closeBtn.style = 'background:transparent;border:none;color:#94a3b8;font-weight:600;cursor:pointer;padding:6px 8px;border-radius:6px;';
+            closeBtn.onclick = () => { overlay.remove(); };
+            header.appendChild(title);
+            header.appendChild(closeBtn);
+            box.appendChild(header);
+
+            const info = document.createElement('div');
+            info.style = 'margin-bottom:12px;color:#cbd5e1;';
+            info.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center"><div>' + (email || '') + '</div><div><button id="account-logout" style="background:transparent;border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:6px 8px;border-radius:6px;">Logout</button></div></div>';
+            box.appendChild(info);
+
+            const credDiv = document.createElement('div');
+            credDiv.style = 'margin-bottom:12px;color:#cbd5e1;';
+            credDiv.innerText = 'Credits: ' + (typeof credits !== 'undefined' ? credits : '—');
+            box.appendChild(credDiv);
+
+            // packs grid
+            const grid = document.createElement('div');
+            grid.style = 'display:grid;grid-template-columns:repeat(auto-fit, minmax(180px,1fr));gap:12px;margin-bottom:12px;';
+
+            let packList = Array.isArray(packs) ? packs.slice() : [];
+            if (!packList.length) packList = [{ id: 'starter', label: 'Starter', credits: 5, amount: '49' }];
+
+            packList.forEach(p => {
+                const pid = p.id || p._id || p.name || p.packId || p.pack || '';
+                const card = document.createElement('button');
+                card.type = 'button';
+                card.style = 'text-align:left;border-radius:8px;padding:14px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03);cursor:pointer;display:flex;flex-direction:column;gap:8px;min-height:100px;';
+                card.setAttribute('aria-pressed', 'false');
+                const lbl = document.createElement('div'); lbl.style = 'font-weight:700;color:#e6eef5;'; lbl.innerText = (p.label || p.name || pid || 'Pack');
+                const mid = document.createElement('div'); mid.style = 'color:#9fb0be;font-size:13px;';
+                const creditsText = (typeof p.credits !== 'undefined' && p.credits !== null) ? String(p.credits) + ' credits' : (p.amount ? (p.amount + ' credits') : '—');
+                const priceText = (typeof p.amount !== 'undefined' && p.amount !== null) ? (p.currency ? (p.currency + ' ' + p.amount) : (p.amount + '')) : '';
+                mid.innerText = creditsText + (priceText ? (' • ' + priceText) : '');
+                const buyRow = document.createElement('div'); buyRow.style = 'display:flex;justify-content:flex-end;';
+                const buyBtn = document.createElement('button'); buyBtn.type = 'button'; buyBtn.innerText = 'Buy'; buyBtn.style = 'background:#00c2c2;color:#071116;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:700;';
+                buyBtn.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    const pwd = prompt('Enter your account password to proceed with purchase');
+                    if (!pwd) { alert('Password required'); return; }
+                    fetch('/api/create-payment-link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email, name: email.split('@')[0], packId: pid, credits: p.credits, stateObj: null, password: pwd }) }).then(async r => {
+                        if (!r.ok) { const t = await r.text().catch(() => r.statusText); alert('Failed to create payment link: ' + t); return; }
+                        const data = await r.json();
+                        const url = data.paymentUrl || data.payment_url || data.url || data.redirect || (data.payment && data.payment.url);
+                        if (url) { window.location.href = url; return; }
+                        alert('Payment link not returned');
+                    }).catch(e => alert('Error creating payment link: ' + (e && e.message || e)));
+                });
+
+                card.appendChild(lbl); card.appendChild(mid); buyRow.appendChild(buyBtn); card.appendChild(buyRow); grid.appendChild(card);
+            });
+
+            box.appendChild(grid);
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+
+            const logoutBtn = document.getElementById('account-logout');
+            if (logoutBtn) logoutBtn.addEventListener('click', () => { try { localStorage.removeItem('bhashya_delivery_email'); localStorage.removeItem('bhashya_delivery_password'); } catch (e) {}; overlay.remove(); try { const cc = document.getElementById('credits-count'); if (cc) cc.textContent = 'Credits: —'; } catch (e) {} });
+
+        } catch (e) { console.warn('showAccountModal error', e); }
     }
 
     // --- Premium feature locking ---
@@ -285,15 +719,9 @@ function setupFormListeners() {
     }
 
     function updatePremiumUI() {
-        const hasToken = !!(obj.token && obj.token !== 'free');
+        // Unlock premium features for all users (token no longer required)
         premiumButtons.forEach(btn => {
-            // don't show golden outline when active
-            if (!hasToken) {
-                if (!btn.classList.contains('is-active')) lockPremiumButton(btn);
-                else unlockPremiumButton(btn);
-            } else {
-                unlockPremiumButton(btn);
-            }
+            unlockPremiumButton(btn);
         });
     }
 
@@ -1480,3 +1908,99 @@ function getCurrentlyExecutingTask(data) {
         });
     } catch (e) { /* ignore setup */ }
 })();
+
+// Apply return state from payment redirect: decode state base64 param, prefill inputs, and auto-trigger generate if status=TXN_SUCCESS
+window.applyReturnState = function () {
+    try {
+        const params = new URLSearchParams(window.location.search || '');
+        const stateB64 = params.get('state');
+        const status = params.get('status');
+        if (!stateB64) return;
+        let stateObj;
+        try { stateObj = JSON.parse(atob(stateB64)); } catch (e) {
+            try { stateObj = JSON.parse(decodeURIComponent(escape(window.atob(stateB64)))); } catch (e2) { console.warn('Invalid state param', e2); return; }
+        }
+        const promptEl = document.querySelector('[data-prompt]');
+        if (stateObj.prompt && promptEl) {
+            promptEl.value = stateObj.prompt;
+            promptEl.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        const emailInput = document.querySelector('[data-delivery-email]');
+        if (stateObj.delivery_email && emailInput) {
+            emailInput.value = stateObj.delivery_email;
+            emailInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        const mapping = { orientation: 'data-orientation', resolution: 'data-resolution', speech_quality: 'data-speech-quality', graphics_quality: 'data-graphics-quality', duration: 'data-duration', language: 'data-language', video_type: 'data-video-type', theme: 'data-theme' };
+        Object.entries(mapping).forEach(([k, attr]) => {
+            if (typeof stateObj[k] !== 'undefined') {
+                const selector = `[${attr}="${stateObj[k]}"]`;
+                const btn = document.querySelector(selector);
+                if (btn) { try { btn.click(); } catch (e) { /* ignore */ } }
+            }
+        });
+        if (stateObj.category && document.querySelector('[data-content-category]')) {
+            const sel = document.querySelector('[data-content-category]');
+            sel.value = stateObj.category;
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        if (stateObj.token && document.querySelector('[data-token-input]')) {
+            const tokenInput = document.querySelector('[data-token-input]');
+            tokenInput.value = stateObj.token;
+            tokenInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        if (status === 'TXN_SUCCESS') {
+            const genBtn = document.getElementById('generate-btn');
+            if (genBtn) setTimeout(() => genBtn.click(), 300);
+        }
+    } catch (e) { console.warn('applyReturnState error', e); }
+};
+
+// Handle password reset links: ?reset=true&email=...&token=...
+window.handleResetFromQuery = function () {
+    try {
+        const params = new URLSearchParams(window.location.search || '');
+        const reset = params.get('reset');
+        if (!reset || String(reset).toLowerCase() !== 'true') return;
+        const email = params.get('email');
+        const token = params.get('token');
+        if (!email || !token) {
+            console.warn('Invalid reset link (missing email or token)');
+            return;
+        }
+
+        // Prefill delivery email input if present
+        try {
+            const emailInput = document.querySelector('[data-delivery-email]');
+            if (emailInput) {
+                try { emailInput.value = decodeURIComponent(email); } catch (e) { emailInput.value = email; }
+                emailInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        } catch (e) {}
+
+        // Store reset token for later use (confirm endpoint)
+        try { window.__resetToken = token; localStorage.setItem('bhashya_reset_token', token); } catch (e) {}
+
+        // Change the password label to indicate this is a new password
+        try {
+            const labels = Array.from(document.querySelectorAll('label'));
+            const pwdLabel = labels.find(l => /account password/i.test((l.textContent || '')));
+            if (pwdLabel) pwdLabel.textContent = 'New Account password *';
+        } catch (e) {}
+
+        // Focus and highlight the password input so user can enter the new password
+        try {
+            const pwdInput = document.querySelector('[data-delivery-password]');
+            if (pwdInput) {
+                try { pwdInput.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+                try { pwdInput.focus({ preventScroll: false }); } catch (e) { try { pwdInput.focus(); } catch (e2) {} }
+                const prevBox = pwdInput.style.boxShadow || '';
+                try { pwdInput.style.boxShadow = '0 0 0 6px rgba(250,204,21,0.25)'; } catch (e) {}
+                // keep highlight for 60s then restore
+                setTimeout(() => { try { pwdInput.style.boxShadow = prevBox; } catch (e) {} }, 60000);
+            }
+        } catch (e) {}
+
+        // Remove reset params from URL so user can refresh without re-triggering
+        try { const url = new URL(window.location.href); url.searchParams.delete('reset'); url.searchParams.delete('email'); url.searchParams.delete('token'); window.history.replaceState({}, document.title, url.toString()); } catch (e) {}
+    } catch (e) { console.warn('handleResetFromQuery error', e); }
+};

@@ -5,7 +5,7 @@
   "description": "Bhashya AI — local Firebase emulator setup and small hosting demo",
   "main": "index.js",
   "scripts": {
-    "start": "firebase emulators:start --only hosting,functions",
+    "start": "firebase emulators:start --only hosting,functions  --inspect-functions=9229",
     "emulators:start": "firebase emulators:start --import=./emulator_data --export-on-exit",
     "emulators:import": "firebase emulators:start --import=./emulator_data --only firestore,auth,functions,hosting",
     "emulators:export": "firebase emulators:export ./emulator_data",

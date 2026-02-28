@@ -5,7 +5,7 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Create AI Reel Video - Bhashya AI</title>
+    <title>Create AI Reel Video - InReelio</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap"
         rel="stylesheet" />
@@ -108,20 +108,19 @@
             <div class="flex items-center">
                 <a href="/" class="flex items-center gap-2 md:gap-3">
                     <div class="flex items-center justify-center">
-                        <img src="logo.png" alt="Bhashya AI"
+                        <img src="logo.png" alt="InReelio"
                             class="w-8 h-8 md:w-12 md:h-12 rounded-md object-contain" />
                     </div>
                     <h1 class="text-sm md:text-xl font-bold tracking-tight whitespace-nowrap max-w-[140px] truncate">
-                        Bhashya AI</h1>
+                        InReelio</h1>
                 </a>
             </div>
             <div class="flex items-center gap-4 md:gap-6">
                 <div class="ml-auto">
-                    <a href="https://paypal.me/shiveshnavin" target="_blank" rel="noopener noreferrer"
-                        class="inline-flex items-center gap-2 px-2 py-1 rounded-md bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-semibold text-sm transition-colors md:px-3 md:py-2 md:rounded-lg">
-                        <span class="material-symbols-outlined text-sm md:text-base">local_cafe</span>
-                        <span class="hidden sm:inline text-sm">Buy me a coffee</span>
-                    </a>
+                    <button id="credits-button" type="button" class="inline-flex items-center gap-2 px-2 py-1 rounded-md bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-semibold text-sm transition-colors md:px-3 md:py-2 md:rounded-lg">
+                        <span class="material-symbols-outlined text-sm md:text-base">monetization_on</span>
+                        <span id="credits-count" class="hidden sm:inline text-sm">Credits: —</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -131,7 +130,7 @@
         <div class="mb-8">
             <h2 class="text-4xl font-bold tracking-tight mb-2">Turn Ideas into Content</h2>
             <p class="text-slate-500 dark:text-slate-400">
-                Describe your idea or message. Bhashya AI converts it into a structured script and automatically
+                Describe your idea or message. InReelio converts it into a structured script and automatically
                 generates ready-to-publish reels and videos—no editing, styling, or manual work needed.
             </p>
 
@@ -197,30 +196,22 @@
                 </div>
                 <p id="delivery-email-error" class="hidden mt-2 text-sm text-red-400">Please enter a valid email
                     address.</p>
+                <div class="mt-2">
+                    <button id="reset-password-btn" type="button"
+                        class="text-sm text-primary underline">Reset password</button>
+                </div>
+                <br />
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Account Password *</label>
+                <div class="relative">
+                    <input aria-describedby="delivery-password-help delivery-password-error" aria-invalid="false" required data-delivery-password value=""
+                        class="w-full bg-slate-100 dark:bg-background-dark border border-slate-200 dark:border-border-muted rounded-lg pl-10 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+                        placeholder="Password to secure credits" type="password" />
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">lock</span>
+                </div>
+                <p id="delivery-password-error" class="hidden mt-2 text-sm text-red-400">Please enter your account password.</p>
             </div>
         </section>
 
-        <!-- Access Premium features (collapsed by default) -->
-        <section class="mb-8">
-            <details class="bg-white dark:bg-surface p-5 rounded-xl border border-slate-200 dark:border-border-muted">
-                <summary class="cursor-pointer text-lg font-bold">Access Premium features</summary>
-                <div class="mt-4">
-                    <label class="block text-xs font-semibold text-slate-500 mb-2">As this is a hobby project with no
-                        commercial backing, I had to limit access to premium features. If you have a token, please
-                        enter
-                        it below to unlock the premium features. You can also reach out to me on LinkedIn for granting
-                        you a token to test the premium features.</label>
-                    <div class="relative">
-                        <input data-token-input value=""
-                            class="w-full bg-slate-100 dark:bg-background-dark border border-slate-200 dark:border-border-muted rounded-lg pl-3 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
-                            placeholder="Paste your token here (optional)" type="text" />
-                    </div>
-                    <p class="mt-2 text-xs text-slate-500">To request a token, contact: <a
-                            href="https://www.linkedin.com/in/shiveshnavin/" target="_blank" rel="noopener noreferrer"
-                            class="text-primary underline">Shivesh Navin</a></p>
-                </div>
-            </details>
-        </section>
 
         <!-- Configuration Grid -->
         <section class="mb-12">
@@ -480,11 +471,13 @@
         // call setupFormListeners on load
         window.addEventListener('load', () => {
             setupFormListeners();
+            if (typeof applyReturnState === 'function') applyReturnState();
+            if (typeof handleResetFromQuery === 'function') handleResetFromQuery();
         });
     </script>
 </body>
 <footer class="mt-20 border-t border-border-dark py-10 text-center opacity-40">
-    <p class="text-sm">© 2026 Bhashya AI</p>
+    <p class="text-sm">© 2026 InReelio</p>
     <p style="padding: 20px;">Disclaimer: AI-generated content may contain errors and should be independently reviewed
         before use. </p>
 </footer>
