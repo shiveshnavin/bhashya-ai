@@ -156,6 +156,16 @@ function setupFormListeners() {
 
             function renderLoginView() {
                 box.innerHTML = '';
+
+                // Tabs
+                const tabsRow = document.createElement('div'); tabsRow.style = 'display:flex;gap:8px;margin-bottom:10px;';
+                const signInTab = document.createElement('button'); signInTab.type = 'button'; signInTab.innerText = 'Sign in'; signInTab.style = 'background:transparent;border:1px solid rgba(255,255,255,0.06);color:#e6eef5;padding:6px 10px;border-radius:8px;cursor:pointer;font-weight:700;';
+                const signUpTab = document.createElement('button'); signUpTab.type = 'button'; signUpTab.innerText = 'Sign up'; signUpTab.style = 'background:transparent;border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:6px 10px;border-radius:8px;cursor:pointer;font-weight:700;';
+                tabsRow.appendChild(signInTab); tabsRow.appendChild(signUpTab);
+                box.appendChild(tabsRow);
+
+                let currentTab = (mode === 'confirm' || mode === 'login') ? 'login' : (mode === 'signup' ? 'signup' : 'login');
+
                 const title = document.createElement('div'); title.innerText = 'Sign in to continue'; title.style = 'font-weight:700;font-size:18px;color:#e6eef5;margin-bottom:8px;';
                 box.appendChild(title);
                 const info = document.createElement('div'); info.style='color:#cbd5e1;margin-bottom:12px;'; info.innerText = 'Please sign in with your email and account password to secure credits and continue generation.';
@@ -183,17 +193,40 @@ function setupFormListeners() {
                 row.appendChild(cancelBtn); row.appendChild(loginBtn);
                 box.appendChild(row);
 
+                function setActiveTab(t) {
+                    currentTab = t;
+                    if (t === 'signup') {
+                        signUpTab.style.background = '#00c2c2'; signUpTab.style.color = '#071116'; signInTab.style.background = 'transparent'; signInTab.style.color = '#94a3b8';
+                        pwdLabel.innerText = 'Enter a password';
+                        loginBtn.innerText = 'Sign up';
+                        forgotLink.style.display = 'none';
+                    } else {
+                        signInTab.style.background = '#00c2c2'; signInTab.style.color = '#071116'; signUpTab.style.background = 'transparent'; signUpTab.style.color = '#94a3b8';
+                        pwdLabel.innerText = 'Enter your password';
+                        loginBtn.innerText = 'Sign in';
+                        forgotLink.style.display = '';
+                    }
+                }
+
+                signInTab.addEventListener('click', () => { setActiveTab('login'); });
+                signUpTab.addEventListener('click', () => { setActiveTab('signup'); });
+
+                // initialize tab
+                setActiveTab(currentTab);
+
                 cancelBtn.onclick = cleanup;
+                forgotLink.addEventListener('click', (ev) => { ev.preventDefault(); showResetRequestView(emailInp.value || presetEmail); });
+
                 loginBtn.addEventListener('click', async () => {
                     const email = (emailInp.value || '').trim();
                     const pwd = (pwdInp.value || '').trim();
                     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                     if (!email || !emailRegex.test(email)) { err.style.display='block'; err.textContent='Enter a valid email'; return; }
-                    if (!pwd) { err.style.display='block'; err.textContent='Enter your password'; return; }
-                    const originalText = loginBtn.innerHTML;
+                    if (!pwd) { err.style.display='block'; err.textContent=(currentTab==='signup' ? 'Enter a password' : 'Enter your password'); return; }
                     try {
                         loginBtn.disabled = true;
-                        loginBtn.innerHTML = '<svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:8px;fill:none;stroke:currentColor;stroke-width:2"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)"></circle><path d="M22 12a10 10 0 00-10-10" stroke="#fff" stroke-linecap="round"></path></svg>Signing in...';
+                        // spinner only (no text)
+                        loginBtn.innerHTML = '<svg class="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)" stroke-width="3"></circle><path d="M22 12a10 10 0 00-10-10" stroke="#fff" stroke-width="3" stroke-linecap="round"></path></svg>';
                         const resp = await fetch('/api/credits?email=' + encodeURIComponent(email) + '&password=' + encodeURIComponent(pwd), { method: 'GET' });
                         if (!resp.ok) { err.style.display='block'; err.textContent='Invalid email or password'; return; }
                         const data = await resp.json();
@@ -204,7 +237,7 @@ function setupFormListeners() {
                         cleanup();
                         if (typeof onSuccess === 'function') setTimeout(onSuccess, 20);
                     } catch (e) { err.style.display='block'; err.textContent='Login failed'; }
-                    finally { try { loginBtn.disabled = false; loginBtn.innerHTML = originalText; } catch(e){} }
+                    finally { try { loginBtn.disabled = false; loginBtn.innerText = (currentTab==='signup' ? 'Sign up' : 'Sign in'); } catch(e){} }
                 });
 
                 forgotLink.addEventListener('click', (ev) => {
@@ -616,21 +649,20 @@ function setupFormListeners() {
                 });
             }
 
-            async function buyPackById(pid) {
-                let overlayEl = document.getElementById('purchase-modal');
-                let spinnerEl = null;
+            async function buyPackById(pid, btn) {
+                // per-button spinner and local-storage fallback for email/password
+                const originalBtnHtml = btn ? btn.innerHTML : null;
                 try {
-                    if (overlayEl) {
-                        try { overlayEl.querySelectorAll('button').forEach(b => b.disabled = true); } catch(e){}
-                        spinnerEl = document.createElement('div');
-                        spinnerEl.id = 'purchase-modal-spinner';
-                        spinnerEl.style = 'position:absolute;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;z-index:10001;pointer-events:none;';
-                        spinnerEl.innerHTML = '<div style="width:64px;height:64px;border-radius:8px;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;"><svg class="animate-spin" width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.12)" stroke-width="3"></circle><path d="M22 12a10 10 0 00-10-10" stroke="#fff" stroke-width="3" stroke-linecap="round"></path></svg></div>';
-                        overlayEl.appendChild(spinnerEl);
-                    }
+                    if (btn) { btn.disabled = true; btn.innerHTML = '<svg class="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="rgba(0,0,0,0.12)" stroke-width="3"></circle><path d="M22 12a10 10 0 00-10-10" stroke="#071116" stroke-width="3" stroke-linecap="round"></path></svg>'; }
+
                     const pack = packList.find(p => (p.id || p._id || p.name || p.packId || p.pack) === pid);
-                    const pwdVal = (passwordInput ? (passwordInput.value || '').trim() : (obj.delivery_password || ''));
-                    const body = { email: emailVal, name: '', packId: pid, credits: pack && (pack.credits || pack.amount) || null, stateObj, password: pwdVal };
+                    // Ensure email/password from input or localStorage
+                    let emailToSend = (emailVal || (obj && obj.delivery_email) || '');
+                    try { if (!emailToSend) emailToSend = localStorage.getItem('bhashya_delivery_email') || emailToSend; } catch(e){}
+                    let pwdVal = (passwordInput ? (passwordInput.value || '').trim() : (obj.delivery_password || ''));
+                    try { if (!pwdVal) pwdVal = localStorage.getItem('bhashya_delivery_password') || pwdVal; } catch(e){}
+
+                    const body = { email: emailToSend || '', name: '', packId: pid, credits: pack && (pack.credits || pack.amount) || null, stateObj, password: pwdVal || '' };
                     const resp = await fetch('/api/create-payment-link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
                     if (!resp.ok) { const t = await resp.text().catch(() => resp.statusText); alert('Failed to create payment link: ' + t); return; }
                     const data = await resp.json();
@@ -640,41 +672,46 @@ function setupFormListeners() {
                     alert('Payment link not returned');
                 } catch (e) { alert('Error creating payment link: ' + (e && e.message || e)); }
                 finally {
-                    try {
-                        if (overlayEl) {
-                            try { overlayEl.querySelectorAll('button').forEach(b => b.disabled = false); } catch(e){}
-                            const sp = document.getElementById('purchase-modal-spinner'); if (sp) sp.remove();
-                        }
-                    } catch(e) {}
+                    try { if (btn) { btn.disabled = false; if (originalBtnHtml !== null) btn.innerHTML = originalBtnHtml; } } catch(e){}
                 }
             }
 
             packList.forEach(p => {
                 const pid = p.id || p._id || p.name || p.packId || p.pack || '';
-                const card = document.createElement('button');
-                card.type = 'button';
-                card.style = 'text-align:left;border-radius:8px;padding:14px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03);cursor:pointer;display:flex;flex-direction:column;gap:8px;min-height:100px;';
-                card.setAttribute('aria-pressed', 'false');
+                const card = document.createElement('div');
+                card.style = 'text-align:left;border-radius:12px;padding:16px;background:linear-gradient(135deg, rgba(0,194,194,0.12), rgba(7,17,22,0.12));border:1px solid rgba(255,255,255,0.03);cursor:pointer;display:flex;flex-direction:column;gap:12px;min-height:140px;';
 
                 const topRow = document.createElement('div');
                 topRow.style = 'display:flex;justify-content:space-between;align-items:center;gap:8px;';
-                const lbl = document.createElement('div'); lbl.style = 'font-weight:700;color:#e6eef5;'; lbl.innerText = (p.label || p.name || pid || 'Pack');
+                const lbl = document.createElement('div'); lbl.style = 'font-weight:800;color:#e6eef5;font-size:16px;'; lbl.innerText = (p.label || p.name || pid || 'Pack');
                 const dot = document.createElement('div'); dot.className = 'pack-select-dot'; dot.style = 'width:12px;height:12px;border-radius:999px;background:#00c2c2;';
-                // hide by default
                 dot.classList.add('hidden');
                 topRow.appendChild(lbl); topRow.appendChild(dot);
 
-                const mid = document.createElement('div'); mid.style = 'color:#9fb0be;font-size:13px;';
-                const creditsText = (typeof p.credits !== 'undefined' && p.credits !== null) ? String(p.credits) + ' credits' : (p.amount ? (p.amount + ' credits') : '—');
+                const mid = document.createElement('div'); mid.style = 'color:#c9d6dd;font-size:14px;';
+                const creditsText = (typeof p.credits !== 'undefined' && p.credits !== null) ? String(p.credits) + ' credits' : '';
                 const priceText = (typeof p.amount !== 'undefined' && p.amount !== null) ? (p.currency ? (p.currency + ' ' + p.amount) : (p.amount + '')) : '';
-                mid.innerText = creditsText + (priceText ? (' • ' + priceText) : '');
+                if (creditsText && priceText) mid.innerText = creditsText + ' • ' + priceText;
+                else mid.innerText = (creditsText || priceText || '—');
+
+                // inject benefits HTML if present
+                if (p.benefits) {
+                    const ben = document.createElement('div');
+                    ben.className = 'pack-benefits';
+                    ben.style = 'color:#9fb0be;font-size:13px;margin-top:6px;';
+                    try { ben.innerHTML = p.benefits; } catch (e) { ben.textContent = String(p.benefits); }
+                    // append benefits below mid
+                    // ensure benefits appear before buy button
+                    card.appendChild(ben);
+                }
 
                 const buyRow = document.createElement('div'); buyRow.style = 'display:flex;justify-content:flex-end;';
-                const buyBtn = document.createElement('button'); buyBtn.type = 'button'; buyBtn.innerText = 'Buy'; buyBtn.style = 'background:#00c2c2;color:#071116;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:700;';
-                buyBtn.addEventListener('click', (ev) => { ev.stopPropagation(); buyPackById(pid); });
+                const buyBtn = document.createElement('button'); buyBtn.type = 'button'; buyBtn.innerText = 'Buy'; buyBtn.style = 'background:#00c2c2;color:#071116;border:none;padding:10px 14px;border-radius:999px;cursor:pointer;font-weight:800;box-shadow:0 6px 18px rgba(0,0,0,0.45);';
+                buyBtn.addEventListener('click', (ev) => { ev.stopPropagation(); buyPackById(pid, buyBtn); });
                 buyRow.appendChild(buyBtn);
 
-                card.appendChild(topRow); card.appendChild(mid); card.appendChild(buyRow);
+                card.appendChild(topRow); card.appendChild(mid);
+                card.appendChild(buyRow);
 
                 card.addEventListener('click', () => { markSelected(pid); });
                 grid.appendChild(card);
@@ -686,12 +723,7 @@ function setupFormListeners() {
             // footer actions
             const footer = document.createElement('div'); footer.style = 'display:flex;justify-content:flex-end;gap:8px;margin-top:8px;';
             const cancelBtn = document.createElement('button'); cancelBtn.type = 'button'; cancelBtn.innerText = 'Cancel'; cancelBtn.style = 'background:transparent;border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:8px 12px;border-radius:6px;cursor:pointer;'; cancelBtn.onclick = hidePurchaseModal;
-            const buySelectedBtn = document.createElement('button'); buySelectedBtn.type = 'button'; buySelectedBtn.innerText = 'Buy Selected'; buySelectedBtn.style = 'background:#00c2c2;color:#071116;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:700;';
-            buySelectedBtn.addEventListener('click', () => {
-                if (!selectedPackId) { alert('Please select a pack to buy'); return; }
-                buyPackById(selectedPackId);
-            });
-            footer.appendChild(cancelBtn); footer.appendChild(buySelectedBtn);
+            footer.appendChild(cancelBtn);
             box.appendChild(footer);
 
             overlay.appendChild(box);
@@ -1386,6 +1418,7 @@ if (typeof window !== 'undefined') {
                     if (statusRawLocal === 'SUCCESS' || statusRawLocal === 'PARTIAL_SUCCESS') {
                         if (pageTitle) pageTitle.textContent = 'Video Generated';
                         if (currentStepWrapper) currentStepWrapper.style.display = 'none';
+                        try { if (typeof unsubscribe === 'function') { unsubscribe(); console.log('Unsubscribed generation snapshot for', id); } } catch (e) { }
                     } else {
                         if (pageTitle) pageTitle.textContent = 'Generating Your Reel';
                         if (currentStepWrapper) currentStepWrapper.style.display = '';

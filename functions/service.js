@@ -2,7 +2,7 @@ const { FireStoreDB } = require('multi-db-orm')
 const crypto = require('crypto')
 
 
-const DISABLED_FREE_TIER = true; // set to true to disable free tier (for testing purposes)
+const ENABLE_FREE_TIER = false; // set to true to disable free tier (for testing purposes)
 class Service {
 
     db
@@ -435,7 +435,7 @@ class Service {
             && (String(generationInput?.graphics_quality || '').toLowerCase() === 'low')
             && (String(generationInput?.speech_quality || '').toLowerCase() === 'neural');
 
-        isFreeFormFactor = isFreeFormFactor && DISABLED_FREE_TIER; // disable free tier for now
+        isFreeFormFactor = isFreeFormFactor && ENABLE_FREE_TIER; // disable free tier for now
 
         const data = (await this.db.getOne(TABLE_CREDITS, {}, email)) || { credits: 0, held: 0, freeCount: 0 };
         const available = (data.credits || 0) - (data.held || 0);

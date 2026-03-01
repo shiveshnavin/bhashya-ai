@@ -29,9 +29,9 @@ const proxyTarget = process.env.PROXY_TARGET || process.env.TARGET || 'http://19
 console.log('apiGenerateProxy target:', proxyTarget);
 
 
-app.post('/api/webhook/generation/:id', async (req, res) => {
+app.post('/api/webhook/generation', async (req, res) => {
     try {
-        const id = req.params.id;
+        const id = req.body.id;
         const payload = req.body || {};
         await service.processGenerationUpdate(id, payload);
         res.json({ ok: true });
@@ -168,7 +168,8 @@ app.post('/api/generate', async (req, res, next) => {
 
         const email = payload.delivery_email || payload.email;
         if (!email) return res.status(400).json({ error: 'delivery_email required' });
-
+        let webhookUrl = `${process.env.HOST}/api/webhook/generation`;
+        req.body.webhook_url = webhookUrl;
         // Require account password to prevent unauthorized holds
         const password = payload.delivery_password || payload.password;
         if (!password) return res.status(400).json({ error: 'password required' });
