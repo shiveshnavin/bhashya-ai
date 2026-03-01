@@ -70,22 +70,22 @@ class Service {
 
             const payload = {
                 channel: {
-                    id: 'bhashy-ai',
-                    userId: 'bhashy-ai',
+                    id: 'inreelio',
+                    userId: 'inreelio',
                     deviceId: 'mail',
                     platform: 'mail',
                     target: email
                 },
                 message: {
-                    id: 'bhashy-ai',
-                    refId: 'bhashy-ai',
+                    id: 'inreelio',
+                    refId: 'inreelio',
                     mediaUrls: [],
                     type: 'text',
-                    title: 'Password Reset Link',
-                    text: `You requested a password reset for InReelio.\n\nClick Reset to reset your password.`,
+                    title: 'InReelio Password Reset Link',
+                    text: `You requested a password reset for InReelio.`,
                     level: 'info',
                     status: 'in_progress',
-                    actions: [{ name: 'Reset', ctaUrl: resetUrl }]
+                    actions: [{ name: 'Reset Password', ctaUrl: resetUrl }]
                 }
             };
 
@@ -450,7 +450,7 @@ class Service {
         if (available >= required) {
             return { allowed: true, free: false, requiredCredits: required, availableCredits: available };
         }
-
+        generationInput.token = process.env.PAID_TOKEN
         return { allowed: false, requiredCredits: required, availableCredits: available };
 
     }

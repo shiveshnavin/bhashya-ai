@@ -1,6 +1,5 @@
 const { onRequest } = require('firebase-functions/v2/https');
 const express = require('express');
-const { createProxyMiddleware } = require('http-proxy-middleware');
 const path = require('path');
 const admin = require('firebase-admin');
 const { Service } = require('./service');
@@ -200,116 +199,83 @@ app.post('/api/generate', async (req, res, next) => {
             return res.status(402).json({ error: 'Insufficient credits', requiredCredits: check.requiredCredits, availableCredits: check.availableCredits || 0, packs });
         }
         req._creditCheck = check;
-        try {
-            if (req._creditCheck.allowed && !req._creditCheck.free && Number(req._creditCheck.requiredCredits) > 0) {
-                // place a hold immediately so credits are reserved while backend processes
-                await service.holdCredits(email, req._creditCheck.requiredCredits, null, password);
-                req._creditCheck.holdApplied = true;
+
+        const targetUrl = (proxyTarget || '').replace(/\/$/, '') + '/api/generate';
+        // ensure origin preserved
+        try { req.body.origin = req.get('origin') || req.get('referer') || req.headers.origin || ''; } catch (e) { }
+        const fetchResp = await fetch(targetUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(req.body) });
+        const status = fetchResp.status;
+        const bodyStr = await fetchResp.text();
+        let parsed = null;
+        try { parsed = JSON.parse(bodyStr); } catch (e) { parsed = null; }
+
+        // find id helper
+        function findId(obj, depth = 0) {
+            if (!obj || typeof obj !== 'object' || depth > 4) return null;
+            const keys = ['id', '_id', 'documentId', 'document_id', 'orderId', 'ORDERID', 'name'];
+            for (const k of keys) {
+                if (Object.prototype.hasOwnProperty.call(obj, k) && obj[k]) {
+                    let val = obj[k];
+                    if (k === 'name' && typeof val === 'string' && val.includes('/')) {
+                        try { const parts = String(val).split('/'); val = parts[parts.length - 1]; } catch (e) { }
+                    }
+                    return String(val);
+                }
             }
-        } catch (e) {
-            console.warn('pre-holdCredits failed', e && e.message || e);
+            for (const k of Object.keys(obj)) {
+                try {
+                    const v = obj[k];
+                    if (v && typeof v === 'object') {
+                        const f = findId(v, depth + 1);
+                        if (f) return f;
+                    }
+                } catch (e) { }
+            }
+            return null;
         }
-        return next();
+
+        const id = parsed ? findId(parsed) : null;
+
+        // Only place a hold if pre-check allowed and not free
+        if (req._creditCheck && req._creditCheck.allowed && !req._creditCheck.free) {
+            try {
+                const successStatus = status >= 200 && status < 300;
+                if (id && successStatus) {
+                    await service.holdCredits(req.body.delivery_email || req.body.email, req._creditCheck.requiredCredits, id, req.body.delivery_password || req.body.password);
+                } else if (id) {
+                    try { await service.attachHoldToGeneration(id, req._creditCheck.requiredCredits, req.body.delivery_email || req.body.email); } catch (e) { }
+                }
+            } catch (e) { console.warn('holdCredits failed', e && e.message || e); }
+        }
+
+        // forward response
+        try {
+            if (parsed) return res.status(status).json(parsed);
+            return res.status(status).send(bodyStr);
+        } catch (e) { return res.status(500).json({ error: 'failed to forward response' }); }
+
     } catch (err) {
-        console.error('Error in /api/generate precheck', err && err.message || err);
-        return res.status(500).json({ error: 'Internal server error' });
+        console.error('Error forwarding /api/generate', err && err.message || err);
+        return res.status(502).json({ error: 'Bad gateway' });
     }
 });
 
-app.use('/api', createProxyMiddleware({
-    target: proxyTarget,
-    changeOrigin: true,
-    // NOTE: Do not rewrite the path — forward the original `/api/...` path to the target.
-    onProxyReq(proxyReq, req, res) {
-        try {
-            console.log('Proxying request to:', proxyTarget);
-            console.log('Incoming request:', {
-                method: req.method,
-                url: req.originalUrl,
-                headers: req.headers
-            });
-
-            let allowedUrls = ['/api/generate'];
-            if (!allowedUrls.some(url => req.originalUrl.startsWith(url))) {
-                console.warn('Blocked request to disallowed URL:', req.originalUrl);
-                res.status(403).json({ error: 'Forbidden - URL not allowed' });
-                return;
-            }
-
-            if (req.body && Object.keys(req.body).length) {
-                req.body.origin = req.get('origin') || req.get('referer') || req.headers.origin || '';
-                const bodyData = JSON.stringify(req.body);
-                proxyReq.setHeader('Content-Type', 'application/json');
-                proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
-                proxyReq.write(bodyData);
-            }
-        } catch (err) {
-            console.warn('Error logging proxy request:', err && err.message);
-        }
-    },
-    onProxyRes(proxyRes, req, res) {
-        const chunks = [];
-        proxyRes.on('data', chunk => chunks.push(chunk));
-        proxyRes.on('end', async () => {
-            try {
-                const bodyStr = Buffer.concat(chunks).toString('utf8');
-                let parsed = null;
-                try { parsed = JSON.parse(bodyStr); } catch (e) { /* ignore non-json responses */ parsed = null; }
-
-                // recursively search for an id-like field in the response body
-                function findId(obj, depth = 0) {
-                    if (!obj || typeof obj !== 'object' || depth > 4) return null;
-                    const keys = ['id', '_id', 'documentId', 'document_id', 'orderId', 'ORDERID', 'name'];
-                    for (const k of keys) {
-                        if (Object.prototype.hasOwnProperty.call(obj, k) && obj[k]) {
-                            let val = obj[k];
-                            if (k === 'name' && typeof val === 'string' && val.includes('/')) {
-                                try { const parts = String(val).split('/'); val = parts[parts.length - 1]; } catch (e) { }
-                            }
-                            return String(val);
-                        }
-                    }
-                    for (const k of Object.keys(obj)) {
-                        try {
-                            const v = obj[k];
-                            if (v && typeof v === 'object') {
-                                const f = findId(v, depth + 1);
-                                if (f) return f;
-                            }
-                        } catch (e) { /* ignore nested errors */ }
-                    }
-                    return null;
-                }
-
-                const id = parsed ? findId(parsed) : null;
-
-                // Always attempt to place a hold when the pre-check allowed generation (even if backend didn't return an id)
-                if (req._creditCheck && req._creditCheck.allowed && !req._creditCheck.free) {
-                    try {
-                        if (!req._creditCheck.holdApplied) {
-                            await service.holdCredits(req.body.delivery_email || req.body.email, req._creditCheck.requiredCredits, id, req.body.delivery_password || req.body.password);
-                        } else if (id) {
-                            // hold was already applied earlier without generation id; attach metadata to generation without modifying account credits
-                            try { await service.attachHoldToGeneration(id, req._creditCheck.requiredCredits, req.body.delivery_email || req.body.email); } catch (e) { /* ignore */ }
-                        }
-                    } catch (e) {
-                        console.warn('holdCredits failed', e && e.message || e);
-                    }
-                }
-            } catch (e) {
-                console.warn('onProxyRes parse error', e && e.message || e);
-            }
-        });
-    },
-
-    onError(err, req, res) {
-        console.error('Proxy error:', err && err.message);
-        if (!res.headersSent) {
-            res.status(502).json({ error: 'Bad gateway - target unreachable', details: err && err.message });
-        }
-    },
-    timeout: 10000,
-    proxyTimeout: 10000,
-}));
+// Forward DELETE /api/generate/:id to downstream
+app.delete('/api/generate/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+        const targetUrl = (proxyTarget || '').replace(/\/$/, '') + '/api/generate/' + encodeURIComponent(id);
+        const fetchResp = await fetch(targetUrl, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
+        const status = fetchResp.status;
+        const bodyStr = await fetchResp.text();
+        let parsed = null;
+        try { parsed = JSON.parse(bodyStr); } catch (e) { parsed = null; }
+        if (parsed) return res.status(status).json(parsed);
+        return res.status(status).send(bodyStr);
+    } catch (err) {
+        console.error('Error forwarding DELETE /api/generate/:id', err && err.message || err);
+        return res.status(502).json({ error: 'Bad gateway' });
+    }
+});
 
 exports.apiGenerateProxy = onRequest(app);

@@ -11,6 +11,7 @@ function setupFormListeners() {
         speech_quality: 'neural',
         graphics_quality: 'low',
         resolution: '360p',
+        gender: 'male',
         delivery_email: '',
         avatarId: null
     };
@@ -68,12 +69,43 @@ function setupFormListeners() {
     setupToggleActive('[data-graphics-quality]', 'data-graphics-quality', 'graphics_quality', null, obj);
     setupToggleActive('[data-duration]', 'data-duration', 'duration', v => Number(v), obj);
     setupToggleActive('[data-language]', 'data-language', 'language', null, obj);
+    setupToggleActive('[data-voice-gender]', 'data-voice-gender', 'gender', null, obj);
     setupToggleActive('[data-video-type]', 'data-video-type', 'video_type', null, obj);
+
+    // persist and restore gender selection
+    try {
+        const storedGender = (() => { try { return localStorage.getItem('bhashya_gender'); } catch(e){ return null; } })();
+        const genderBtns = Array.from(document.querySelectorAll('[data-voice-gender]'));
+        if (storedGender) {
+            const btn = genderBtns.find(b => b.getAttribute('data-voice-gender') === storedGender);
+            if (btn) { btn.click(); }
+        } else {
+            // default to male
+            const btn = genderBtns.find(b => b.getAttribute('data-voice-gender') === 'male');
+            if (btn) { btn.click(); try { localStorage.setItem('bhashya_gender', 'male'); } catch(e){} }
+        }
+        genderBtns.forEach(b => b.addEventListener('click', () => { try { localStorage.setItem('bhashya_gender', b.getAttribute('data-voice-gender')); } catch(e){} }));
+    } catch (e) {}
+
 
     // when avatar video-type is clicked, open avatar chooser
     try {
         const avatarBtn = document.querySelector('[data-video-type="avatar"]');
-        if (avatarBtn) avatarBtn.addEventListener('click', (ev) => { try { if (!ev || !ev.isTrusted) return; setTimeout(() => { showAvatarChooser(); }, 60); } catch (e) { /* ignore */ } });
+        if (avatarBtn) avatarBtn.addEventListener('click', (ev) => { try { if (!ev || !ev.isTrusted) return; if (window.__recentlyClosedAvatarModal && ((Date.now() - window.__recentlyClosedAvatarModal) < 500)) { window.__recentlyClosedAvatarModal = null; return; } setTimeout(() => { showAvatarChooser(); }, 60); } catch (e) { /* ignore */ } });
+        // add static thumbnail to slideshow/graphics button
+        try {
+            const slideBtn = document.querySelector('[data-video-type="slideshow"]');
+            if (slideBtn) {
+                let thumb = slideBtn.querySelector('#video-type-slideshow-thumb');
+                if (!thumb) {
+                    thumb = document.createElement('img');
+                    thumb.id = 'video-type-slideshow-thumb';
+                    thumb.style = 'width:72px;height:72px;object-fit:cover;border-radius:8px;margin-bottom:6px;display:block;';
+                    try { slideBtn.insertBefore(thumb, slideBtn.firstChild); } catch (e) { try { slideBtn.appendChild(thumb); } catch (e2) {} }
+                }
+                try { thumb.src = 'graphical.png'; thumb.alt = 'Graphics'; thumb.style.display = 'block'; } catch (e) {}
+            }
+        } catch (e) {}
     } catch (e) { }
 
     // Content Category Select
@@ -257,17 +289,27 @@ function setupFormListeners() {
                 box.appendChild(emailLabel); box.appendChild(emailInp);
                 const msg = document.createElement('div'); msg.style='color:#9fb0be;margin-bottom:8px;display:none;'; box.appendChild(msg);
                 const row = document.createElement('div'); row.style='display:flex;justify-content:flex-end;gap:8px;';
-                const cancelBtn = document.createElement('button'); cancelBtn.type='button'; cancelBtn.innerText='Cancel'; cancelBtn.style='background:transparent;border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:8px 12px;border-radius:6px;cursor:pointer;';
+                const cancelBtn = document.createElement('button'); cancelBtn.type='button'; cancelBtn.innerText='Close'; cancelBtn.style='background:transparent;border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:8px 12px;border-radius:6px;cursor:pointer;';
                 const sendBtn = document.createElement('button'); sendBtn.type='button'; sendBtn.innerText='Send Reset Link'; sendBtn.style='background:#00c2c2;color:#071116;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:700;';
                 row.appendChild(cancelBtn); row.appendChild(sendBtn); box.appendChild(row);
                 cancelBtn.onclick = cleanup;
                 sendBtn.addEventListener('click', async () => {
                     const email = (emailInp.value || '').trim(); const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                     if (!email || !emailRegex.test(email)) { msg.style.display='block'; msg.textContent='Enter a valid email'; return; }
+                    const origText = sendBtn.innerHTML;
                     try {
+                        sendBtn.disabled = true;
+                        // spinner only
+                        sendBtn.innerHTML = '<svg class="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)" stroke-width="3"></circle><path d="M22 12a10 10 0 00-10-10" stroke="#fff" stroke-width="3" stroke-linecap="round"></path></svg>';
                         const resp = await fetch('/api/password-reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
-                        if (resp.ok) { msg.style.display='block'; msg.textContent='Reset link sent to ' + email + '. Check your email.'; } else { const b = await resp.json().catch(()=>null); msg.style.display='block'; msg.textContent = 'Failed to send: ' + (b && (b.error || JSON.stringify(b)) || resp.statusText); }
-                    } catch (e) { msg.style.display='block'; msg.textContent='Error sending reset link'; }
+                        if (resp.ok) {
+                            msg.style.display='block'; msg.style.color = '#9fb0be'; msg.textContent='Reset link sent to ' + email + '. Check your email.';
+                        } else {
+                            const b = await resp.json().catch(()=>null);
+                            msg.style.display='block'; msg.style.color = '#ff8a8a'; msg.textContent = 'Failed to send: ' + (b && (b.error || JSON.stringify(b)) || resp.statusText);
+                        }
+                    } catch (e) { msg.style.display='block'; msg.style.color = '#ff8a8a'; msg.textContent='Error sending reset link'; }
+                    finally { try { sendBtn.disabled = false; sendBtn.innerHTML = origText; } catch(e){} }
                 });
             }
 
@@ -287,21 +329,28 @@ function setupFormListeners() {
                 box.appendChild(newLabel); box.appendChild(newInp); box.appendChild(confirmInp);
                 const msg = document.createElement('div'); msg.style='color:#ff8a8a;margin-bottom:8px;display:none;'; box.appendChild(msg);
                 const row = document.createElement('div'); row.style='display:flex;justify-content:flex-end;gap:8px;';
-                const cancelBtn = document.createElement('button'); cancelBtn.type='button'; cancelBtn.innerText='Cancel'; cancelBtn.style='background:transparent;border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:8px 12px;border-radius:6px;cursor:pointer;';
+                const cancelBtn = document.createElement('button'); cancelBtn.type='button'; cancelBtn.innerText='Close'; cancelBtn.style='background:transparent;border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:8px 12px;border-radius:6px;cursor:pointer;';
                 const setBtn = document.createElement('button'); setBtn.type='button'; setBtn.innerText='Set Password'; setBtn.style='background:#00c2c2;color:#071116;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:700;';
                 row.appendChild(cancelBtn); row.appendChild(setBtn); box.appendChild(row);
                 cancelBtn.onclick = cleanup;
                 setBtn.addEventListener('click', async () => {
                     const p1 = (newInp.value || '').trim(); const p2 = (confirmInp.value || '').trim();
-                    if (!p1 || p1.length < 4) { msg.style.display='block'; msg.textContent = 'Password too short'; return; }
-                    if (p1 !== p2) { msg.style.display='block'; msg.textContent = 'Passwords do not match'; return; }
+                    if (!p1 || p1.length < 4) { msg.style.display='block'; msg.style.color = '#ff8a8a'; msg.textContent = 'Password too short'; return; }
+                    if (p1 !== p2) { msg.style.display='block'; msg.style.color = '#ff8a8a'; msg.textContent = 'Passwords do not match'; return; }
+                    const origText = setBtn.innerHTML;
                     try {
+                        setBtn.disabled = true;
+                        // spinner only
+                        setBtn.innerHTML = '<svg class="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)" stroke-width="3"></circle><path d="M22 12a10 10 0 00-10-10" stroke="#fff" stroke-width="3" stroke-linecap="round"></path></svg>';
                         const resp = await fetch('/api/password-reset/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email, token: token, newPassword: p1 }) });
-                        if (!resp.ok) { const b = await resp.json().catch(()=>null); msg.style.display='block'; msg.textContent = 'Failed: ' + (b && (b.error || JSON.stringify(b)) || resp.statusText); return; }
-                        // success: store credentials and proceed
+                        if (!resp.ok) { const b = await resp.json().catch(()=>null); msg.style.display='block'; msg.style.color = '#ff8a8a'; msg.textContent = 'Failed: ' + (b && (b.error || JSON.stringify(b)) || resp.statusText); return; }
+                        // success: store credentials and proceed but show message first
                         try { localStorage.setItem('bhashya_delivery_email', email); localStorage.setItem('bhashya_delivery_password', p1); } catch (e) {}
-                        obj.delivery_email = email; obj.delivery_password = p1; updateHeaderCredits(email, p1); updateLogoutUI(); cleanup(); if (typeof onSuccess === 'function') setTimeout(onSuccess, 20);
-                    } catch (e) { msg.style.display='block'; msg.textContent='Error setting password'; }
+                        obj.delivery_email = email; obj.delivery_password = p1; updateHeaderCredits(email, p1); updateLogoutUI();
+                        msg.style.display='block'; msg.style.color = '#9fb0be'; msg.textContent = 'Password set. You are now logged in.';
+                        setTimeout(() => { try { cleanup(); if (typeof onSuccess === 'function') setTimeout(onSuccess, 20); } catch(e){} }, 1200);
+                    } catch (e) { msg.style.display='block'; msg.style.color = '#ff8a8a'; msg.textContent='Error setting password'; }
+                    finally { try { setBtn.disabled = false; setBtn.innerHTML = origText; } catch(e){} }
                 });
             }
 
@@ -428,10 +477,15 @@ function setupFormListeners() {
             } catch (e) { /* ignore */ }
             try {
                 const storedAvatar = (() => { try { return localStorage.getItem('bhashya_selected_avatar'); } catch (e) { return null; } })();
+                const arr = Array.isArray(window.__avatarsCache) ? window.__avatarsCache : [];
                 if (storedAvatar) {
-                    const arr = Array.isArray(window.__avatarsCache) ? window.__avatarsCache : [];
                     const found = arr.find(a => String(a.id) === String(storedAvatar));
                     if (found) { obj.avatarId = found.id; updateSelectedAvatarUI(found); }
+                } else {
+                    // default avatar if none selected
+                    const defaultId = '698c713672309b00074febb6';
+                    const foundDefault = arr.find(a => String(a.id) === String(defaultId));
+                    if (foundDefault) { obj.avatarId = foundDefault.id; updateSelectedAvatarUI(foundDefault); try { localStorage.setItem('bhashya_selected_avatar', foundDefault.id); } catch(e){} }
                 }
             } catch (e) {}
         })();
@@ -734,6 +788,8 @@ function setupFormListeners() {
     // Avatar chooser modal
     async function showAvatarChooser() {
         try {
+            // prevent duplicate modal instances
+            if (document.getElementById('avatar-modal')) return;
             hidePurchaseModal();
             const emailEl = document.querySelector('[data-delivery-email]');
             const emailVal = emailEl ? (emailEl.value || '').trim() : '';
@@ -753,7 +809,7 @@ function setupFormListeners() {
             const title = document.createElement('div'); title.innerText = 'Choose Avatar'; title.style = 'font-weight:700;font-size:18px;color:#e6eef5;';
             const closeBtn = document.createElement('button'); closeBtn.innerText = 'Close'; closeBtn.style = 'background:transparent;border:none;color:#94a3b8;font-weight:600;cursor:pointer;padding:6px 8px;border-radius:6px;';
 
-            function removeOverlay() { try { document.removeEventListener('keydown', onKeydown); } catch(e){} try { overlay.remove(); } catch(e){} }
+            function removeOverlay() { try { document.removeEventListener('keydown', onKeydown); } catch(e){} try { window.__recentlyClosedAvatarModal = Date.now(); } catch(e){} try { overlay.remove(); } catch(e){} }
             function onKeydown(e) { if (e && (e.key === 'Escape' || e.key === 'Esc' || e.keyCode === 27)) { removeOverlay(); } }
             document.addEventListener('keydown', onKeydown);
 
@@ -785,7 +841,7 @@ function setupFormListeners() {
                 chooseBtn.type = 'button';
                 chooseBtn.innerText = 'Choose';
                 chooseBtn.style = 'position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:20;background:rgba(250,250,245,0.95);color:#071116;border:none;padding:8px 14px;border-radius:999px;cursor:pointer;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,0.5);';
-                chooseBtn.addEventListener('click', (ev) => { ev.stopPropagation(); try { obj.avatarId = id; try { localStorage.setItem('bhashya_selected_avatar', id); } catch (e) {} if (typeof updateSelectedAvatarUI === 'function') updateSelectedAvatarUI(a); removeOverlay(); } catch (e) { console.warn(e); }});
+                chooseBtn.addEventListener('click', (ev) => { ev.preventDefault(); ev.stopPropagation(); try { obj.avatarId = id; try { localStorage.setItem('bhashya_selected_avatar', id); } catch (e) {} if (typeof updateSelectedAvatarUI === 'function') updateSelectedAvatarUI(a); window.__recentlyClosedAvatarModal = Date.now(); removeOverlay(); } catch (e) { console.warn(e); }});
                 imgWrap.appendChild(chooseBtn);
 
                 const name = document.createElement('div'); name.style='font-weight:700;color:#e6eef5;padding-top:8px;'; name.textContent = a.name || id;
@@ -1012,6 +1068,7 @@ function setupToggleActive(selector, valueKey, objKey, valueTransform, obj) {
         duration: 'flex-1 py-2 text-sm font-bold rounded-lg bg-primary text-background-dark',
         theme: 'flex-1 py-2 text-xs font-bold rounded bg-primary/20 border border-primary/50 text-primary',
         language: 'text-sm font-semibold text-primary bg-transparent px-2 py-1 rounded',
+        gender: 'py-2 text-sm font-bold rounded bg-primary/20 border border-primary/50 text-primary',
         video_type: 'flex-1 flex flex-col items-center gap-2 py-3 rounded-lg border-2 border-primary bg-primary/10 text-primary',
     };
     const groupInactiveClass = {
@@ -1022,6 +1079,7 @@ function setupToggleActive(selector, valueKey, objKey, valueTransform, obj) {
         duration: 'flex-1 py-2 text-sm font-bold rounded-lg bg-slate-100 dark:bg-background-dark text-slate-500',
         theme: 'flex-1 py-2 text-xs font-bold rounded bg-slate-100 dark:bg-background-dark border border-transparent',
         language: 'text-sm font-semibold text-slate-500 bg-transparent px-2 py-1 rounded',
+        gender: 'py-2 text-sm font-bold rounded bg-slate-100 dark:bg-background-dark border border-transparent',
         video_type: 'flex-1 flex flex-col items-center gap-2 py-3 rounded-lg border-2 border-transparent bg-slate-100 dark:bg-background-dark hover:bg-slate-200 dark:hover:bg-border-muted transition-all',
     };
     document.querySelectorAll(selector).forEach(btn => {
