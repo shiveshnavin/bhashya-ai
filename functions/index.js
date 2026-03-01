@@ -158,6 +158,14 @@ app.get('/api/avatars', async (req, res) => {
 app.post('/api/generate', async (req, res, next) => {
     try {
         const payload = req.body || {};
+        // If request originates from the official web origin, skip all pre-checks
+        try {
+            const originHeader = String(req.get('origin') || req.get('referer') || req.headers.origin || '');
+            if (originHeader && originHeader.includes('bhashya-ai.web.app')) {
+                return next();
+            }
+        } catch (e) { /* ignore */ }
+
         const email = payload.delivery_email || payload.email;
         if (!email) return res.status(400).json({ error: 'delivery_email required' });
 
@@ -228,6 +236,7 @@ app.use('/api', createProxyMiddleware({
             }
 
             if (req.body && Object.keys(req.body).length) {
+                req.body.origin = req.get('origin') || req.get('referer') || req.headers.origin || '';
                 const bodyData = JSON.stringify(req.body);
                 proxyReq.setHeader('Content-Type', 'application/json');
                 proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));

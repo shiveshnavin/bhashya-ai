@@ -137,6 +137,181 @@ function setupFormListeners() {
         } catch (e) { try { const cc = document.getElementById('credits-count'); if (cc) { cc.textContent = 'Credits: —'; cc.classList.remove('hidden'); } } catch (e2) {} }
     }
 
+    // Login modal helper (shown when user clicks Generate but isn't logged in)
+    function showLoginModal(onSuccess, opts) {
+        try {
+            const mode = (opts && opts.mode) ? opts.mode : 'login';
+            const presetEmail = (opts && opts.email) ? opts.email : (() => { try { return localStorage.getItem('bhashya_delivery_email'); } catch (e) { return ''; } })();
+            const presetToken = (opts && opts.token) ? opts.token : null;
+
+            const overlay = document.createElement('div');
+            overlay.id = 'login-modal';
+            overlay.style = 'position:fixed;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);z-index:10000;padding:20px;backdrop-filter:blur(6px);';
+            const box = document.createElement('div');
+            box.style = 'background:#0b1220;color:#e6eef5;border-radius:12px;padding:20px;max-width:480px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.03);';
+
+            function renderLoginView() {
+                box.innerHTML = '';
+                const title = document.createElement('div'); title.innerText = 'Sign in to continue'; title.style = 'font-weight:700;font-size:18px;color:#e6eef5;margin-bottom:8px;';
+                box.appendChild(title);
+                const info = document.createElement('div'); info.style='color:#cbd5e1;margin-bottom:12px;'; info.innerText = 'Please sign in with your email and account password to secure credits and continue generation.';
+                box.appendChild(info);
+
+                const emailLabel = document.createElement('label'); emailLabel.innerText = 'Email'; emailLabel.style='display:block;margin-bottom:6px;color:#9fb0be;font-size:12px;';
+                const emailInp = document.createElement('input'); emailInp.type='email'; emailInp.style='width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);margin-bottom:8px;background:#071116;color:#e6eef5;';
+                if (presetEmail) emailInp.value = presetEmail;
+                box.appendChild(emailLabel); box.appendChild(emailInp);
+
+                const pwdLabel = document.createElement('label'); pwdLabel.innerText = 'Password'; pwdLabel.style='display:block;margin-bottom:6px;color:#9fb0be;font-size:12px;';
+                const pwdInp = document.createElement('input'); pwdInp.type='password'; pwdInp.style='width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);margin-bottom:8px;background:#071116;color:#e6eef5;';
+                const storedPwd = (() => { try { return localStorage.getItem('bhashya_delivery_password'); } catch (e) { return null; } })();
+                if (storedPwd) pwdInp.value = storedPwd;
+                box.appendChild(pwdLabel); box.appendChild(pwdInp);
+
+                const forgotLink = document.createElement('a'); forgotLink.href = '#'; forgotLink.style='display:inline-block;margin-bottom:12px;color:#7dd3fc;font-size:13px;cursor:pointer;'; forgotLink.innerText = 'Forgot password?';
+                box.appendChild(forgotLink);
+
+                const err = document.createElement('div'); err.id='login-modal-error'; err.style='color:#ff8a8a;margin-bottom:8px;display:none;'; box.appendChild(err);
+
+                const row = document.createElement('div'); row.style='display:flex;justify-content:flex-end;gap:8px;';
+                const cancelBtn = document.createElement('button'); cancelBtn.type='button'; cancelBtn.innerText='Cancel'; cancelBtn.style='background:transparent;border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:8px 12px;border-radius:6px;cursor:pointer;';
+                const loginBtn = document.createElement('button'); loginBtn.type='button'; loginBtn.innerText='Sign in'; loginBtn.style='background:#00c2c2;color:#071116;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:700;';
+                row.appendChild(cancelBtn); row.appendChild(loginBtn);
+                box.appendChild(row);
+
+                cancelBtn.onclick = cleanup;
+                loginBtn.addEventListener('click', async () => {
+                    const email = (emailInp.value || '').trim();
+                    const pwd = (pwdInp.value || '').trim();
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!email || !emailRegex.test(email)) { err.style.display='block'; err.textContent='Enter a valid email'; return; }
+                    if (!pwd) { err.style.display='block'; err.textContent='Enter your password'; return; }
+                    const originalText = loginBtn.innerHTML;
+                    try {
+                        loginBtn.disabled = true;
+                        loginBtn.innerHTML = '<svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:8px;fill:none;stroke:currentColor;stroke-width:2"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)"></circle><path d="M22 12a10 10 0 00-10-10" stroke="#fff" stroke-linecap="round"></path></svg>Signing in...';
+                        const resp = await fetch('/api/credits?email=' + encodeURIComponent(email) + '&password=' + encodeURIComponent(pwd), { method: 'GET' });
+                        if (!resp.ok) { err.style.display='block'; err.textContent='Invalid email or password'; return; }
+                        const data = await resp.json();
+                        try { localStorage.setItem('bhashya_delivery_email', email); localStorage.setItem('bhashya_delivery_password', pwd); } catch (e) {}
+                        obj.delivery_email = email; obj.delivery_password = pwd;
+                        updateHeaderCredits(email, pwd);
+                        updateLogoutUI();
+                        cleanup();
+                        if (typeof onSuccess === 'function') setTimeout(onSuccess, 20);
+                    } catch (e) { err.style.display='block'; err.textContent='Login failed'; }
+                    finally { try { loginBtn.disabled = false; loginBtn.innerHTML = originalText; } catch(e){} }
+                });
+
+                forgotLink.addEventListener('click', (ev) => {
+                    ev.preventDefault(); showResetRequestView(emailInp.value || presetEmail);
+                });
+            }
+
+            function showResetRequestView(prefillEmail) {
+                box.innerHTML = '';
+                const title = document.createElement('div'); title.innerText = 'Reset password'; title.style = 'font-weight:700;font-size:18px;color:#e6eef5;margin-bottom:8px;';
+                box.appendChild(title);
+                const info = document.createElement('div'); info.style='color:#cbd5e1;margin-bottom:12px;'; info.innerText = 'Enter your account email and we will send a password reset link to it.';
+                box.appendChild(info);
+                const emailLabel = document.createElement('label'); emailLabel.innerText = 'Email'; emailLabel.style='display:block;margin-bottom:6px;color:#9fb0be;font-size:12px;';
+                const emailInp = document.createElement('input'); emailInp.type='email'; emailInp.style='width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);margin-bottom:8px;background:#071116;color:#e6eef5;';
+                if (prefillEmail) emailInp.value = prefillEmail;
+                box.appendChild(emailLabel); box.appendChild(emailInp);
+                const msg = document.createElement('div'); msg.style='color:#9fb0be;margin-bottom:8px;display:none;'; box.appendChild(msg);
+                const row = document.createElement('div'); row.style='display:flex;justify-content:flex-end;gap:8px;';
+                const cancelBtn = document.createElement('button'); cancelBtn.type='button'; cancelBtn.innerText='Cancel'; cancelBtn.style='background:transparent;border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:8px 12px;border-radius:6px;cursor:pointer;';
+                const sendBtn = document.createElement('button'); sendBtn.type='button'; sendBtn.innerText='Send Reset Link'; sendBtn.style='background:#00c2c2;color:#071116;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:700;';
+                row.appendChild(cancelBtn); row.appendChild(sendBtn); box.appendChild(row);
+                cancelBtn.onclick = cleanup;
+                sendBtn.addEventListener('click', async () => {
+                    const email = (emailInp.value || '').trim(); const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!email || !emailRegex.test(email)) { msg.style.display='block'; msg.textContent='Enter a valid email'; return; }
+                    try {
+                        const resp = await fetch('/api/password-reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+                        if (resp.ok) { msg.style.display='block'; msg.textContent='Reset link sent to ' + email + '. Check your email.'; } else { const b = await resp.json().catch(()=>null); msg.style.display='block'; msg.textContent = 'Failed to send: ' + (b && (b.error || JSON.stringify(b)) || resp.statusText); }
+                    } catch (e) { msg.style.display='block'; msg.textContent='Error sending reset link'; }
+                });
+            }
+
+            function showConfirmResetView(email, token) {
+                box.innerHTML = '';
+                const title = document.createElement('div'); title.innerText = 'Set new password'; title.style = 'font-weight:700;font-size:18px;color:#e6eef5;margin-bottom:8px;';
+                box.appendChild(title);
+                const info = document.createElement('div'); info.style='color:#cbd5e1;margin-bottom:12px;'; info.innerText = 'Set a new password for your account.';
+                box.appendChild(info);
+                const emailLabel = document.createElement('label'); emailLabel.innerText = 'Email'; emailLabel.style='display:block;margin-bottom:6px;color:#9fb0be;font-size:12px;';
+                const emailInp = document.createElement('input'); emailInp.type='email'; emailInp.readOnly = true; emailInp.style='width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);margin-bottom:8px;background:#071116;color:#e6eef5;';
+                emailInp.value = email || '';
+                box.appendChild(emailLabel); box.appendChild(emailInp);
+                const newLabel = document.createElement('label'); newLabel.innerText = 'New password'; newLabel.style='display:block;margin-bottom:6px;color:#9fb0be;font-size:12px;';
+                const newInp = document.createElement('input'); newInp.type='password'; newInp.style='width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);margin-bottom:8px;background:#071116;color:#e6eef5;';
+                const confirmInp = document.createElement('input'); confirmInp.type='password'; confirmInp.placeholder='Confirm password'; confirmInp.style='width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);margin-bottom:12px;background:#071116;color:#e6eef5;';
+                box.appendChild(newLabel); box.appendChild(newInp); box.appendChild(confirmInp);
+                const msg = document.createElement('div'); msg.style='color:#ff8a8a;margin-bottom:8px;display:none;'; box.appendChild(msg);
+                const row = document.createElement('div'); row.style='display:flex;justify-content:flex-end;gap:8px;';
+                const cancelBtn = document.createElement('button'); cancelBtn.type='button'; cancelBtn.innerText='Cancel'; cancelBtn.style='background:transparent;border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:8px 12px;border-radius:6px;cursor:pointer;';
+                const setBtn = document.createElement('button'); setBtn.type='button'; setBtn.innerText='Set Password'; setBtn.style='background:#00c2c2;color:#071116;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:700;';
+                row.appendChild(cancelBtn); row.appendChild(setBtn); box.appendChild(row);
+                cancelBtn.onclick = cleanup;
+                setBtn.addEventListener('click', async () => {
+                    const p1 = (newInp.value || '').trim(); const p2 = (confirmInp.value || '').trim();
+                    if (!p1 || p1.length < 4) { msg.style.display='block'; msg.textContent = 'Password too short'; return; }
+                    if (p1 !== p2) { msg.style.display='block'; msg.textContent = 'Passwords do not match'; return; }
+                    try {
+                        const resp = await fetch('/api/password-reset/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email, token: token, newPassword: p1 }) });
+                        if (!resp.ok) { const b = await resp.json().catch(()=>null); msg.style.display='block'; msg.textContent = 'Failed: ' + (b && (b.error || JSON.stringify(b)) || resp.statusText); return; }
+                        // success: store credentials and proceed
+                        try { localStorage.setItem('bhashya_delivery_email', email); localStorage.setItem('bhashya_delivery_password', p1); } catch (e) {}
+                        obj.delivery_email = email; obj.delivery_password = p1; updateHeaderCredits(email, p1); updateLogoutUI(); cleanup(); if (typeof onSuccess === 'function') setTimeout(onSuccess, 20);
+                    } catch (e) { msg.style.display='block'; msg.textContent='Error setting password'; }
+                });
+            }
+
+            function cleanup() { try { overlay.remove(); document.removeEventListener('keydown', onEsc); } catch(e) {} }
+            function onEsc(e) { if (e && (e.key === 'Escape' || e.key === 'Esc' || e.keyCode === 27)) cleanup(); }
+            document.addEventListener('keydown', onEsc);
+
+            overlay.appendChild(box); document.body.appendChild(overlay);
+
+            if (mode === 'confirm' && presetToken && presetEmail) {
+                showConfirmResetView(presetEmail, presetToken);
+            } else {
+                renderLoginView();
+            }
+
+        } catch (e) { console.warn('showLoginModal error', e); }
+    }
+
+    // Logout button handling
+    function updateLogoutUI() {
+        try {
+            const lb = document.getElementById('logout-btn');
+            if (!lb) return;
+            const stored = (() => { try { return localStorage.getItem('bhashya_delivery_email'); } catch (e) { return null; } })();
+            if (stored) { lb.classList.remove('hidden'); } else { lb.classList.add('hidden'); }
+            lb.onclick = () => { try { localStorage.removeItem('bhashya_delivery_email'); localStorage.removeItem('bhashya_delivery_password'); } catch (e) {} updateHeaderCredits(null); lb.classList.add('hidden'); };
+        } catch (e) { }
+    }
+
+    // run once on load
+    setTimeout(updatePremiumUI, 50);
+    setTimeout(updateLogoutUI, 50);
+
+    // If URL contains reset token (from email), open the login modal in confirm mode
+    try {
+        const _urlParams = new URLSearchParams(window.location.search || '');
+        const _reset = (_urlParams.get('reset') || '').toLowerCase() === 'true';
+        const _resetEmail = (_urlParams.get('email') || _urlParams.get('EMAIL') || '').trim();
+        const _resetToken = (_urlParams.get('token') || _urlParams.get('resetToken') || '').trim();
+        if (_reset && _resetEmail && _resetToken) {
+            // open confirm modal; clear URL params to avoid re-opening
+            try { history.replaceState({}, '', window.location.pathname || '/'); } catch (e) {}
+            setTimeout(() => { showLoginModal(null, { mode: 'confirm', email: _resetEmail, token: _resetToken }); }, 80);
+        }
+    } catch (e) { }
+
+
     if (emailInput) {
         // Try to prefill from localStorage first, then from any hardcoded/prefilled value
         try {
@@ -285,11 +460,17 @@ function setupFormListeners() {
             if (genBtn.disabled) return;
             const spinner = genBtn.querySelector('.generate-spinner');
             const genText = genBtn.querySelector('.generate-text');
-            // simple frontend delivery email validation
-            const emailVal = emailInput ? (emailInput.value || '').trim() : (obj.delivery_email || '').trim();
+            // Determine email/password from inputs or localStorage
+            const storedEmail = (() => { try { return localStorage.getItem('bhashya_delivery_email'); } catch (e) { return null; } })();
+            const storedPwd = (() => { try { return localStorage.getItem('bhashya_delivery_password'); } catch (e) { return null; } })();
+            const emailVal = emailInput ? (emailInput.value || '').trim() : ((obj.delivery_email || storedEmail) || '').trim();
+            const pwdFromInput = passwordInput ? (passwordInput.value || '').trim() : (obj.delivery_password || null);
+            const pwdVal = (pwdFromInput || storedPwd || (obj.delivery_password || '')) || '';
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailVal || !emailRegex.test(emailVal)) {
-                showInlineEmailError('Invalid delivery email');
+
+            if (!emailVal || !emailRegex.test(emailVal) || !pwdVal) {
+                // show login modal to collect credentials and then retry
+                showLoginModal(() => { try { genBtn.click(); } catch (e) {} });
                 return;
             }
 
@@ -301,18 +482,10 @@ function setupFormListeners() {
                 const payload = { ...obj };
                 // ensure prompt included
                 payload.prompt = payload.prompt || (promptEl ? promptEl.value : '');
+                // ensure delivery email included (from input or localStorage)
+                payload.delivery_email = emailVal || (obj.delivery_email || '');
 
                 // require account password to protect credits
-                const pwdVal = (payload.delivery_password || payload.password || (passwordInput ? (passwordInput.value || '').trim() : ''));
-                if (!pwdVal) {
-                    // restore button state
-                    if (spinner) spinner.classList.add('hidden');
-                    if (genText) genText.classList.remove('hidden');
-                    genBtn.disabled = false;
-                    const pwdErr = document.getElementById('delivery-password-error');
-                    if (pwdErr) { pwdErr.textContent = 'Password required to generate'; pwdErr.classList.remove('hidden'); }
-                    return;
-                }
                 payload.delivery_password = pwdVal;
 
                 // ensure avatar selection is included in payload
@@ -349,12 +522,8 @@ function setupFormListeners() {
                     if (spinner) spinner.classList.add('hidden');
                     if (genText) genText.classList.remove('hidden');
                     genBtn.disabled = false;
-                    // If the error seems related to the delivery email, show inline error, otherwise show modal
-                    if (errMsg && /email/i.test(errMsg)) {
-                        showInlineEmailError(errMsg);
-                    } else {
-                        showErrorModal(errMsg);
-                    }
+                    // Show error modal with server message
+                    showErrorModal(errMsg);
                     return;
                 }
 
@@ -366,7 +535,7 @@ function setupFormListeners() {
                 window.location.href = `generate?id=${encodeURIComponent(id)}`;
             } catch (err) {
                 console.error(err);
-                alert('Generation failed: ' + (err.message || err));
+                showErrorModal(err && (err.message || err) ? (err.message || String(err)) : 'Generation failed');
                 // restore button state
                 if (spinner) spinner.classList.add('hidden');
                 if (genText) genText.classList.remove('hidden');
@@ -443,7 +612,17 @@ function setupFormListeners() {
             }
 
             async function buyPackById(pid) {
+                let overlayEl = document.getElementById('purchase-modal');
+                let spinnerEl = null;
                 try {
+                    if (overlayEl) {
+                        try { overlayEl.querySelectorAll('button').forEach(b => b.disabled = true); } catch(e){}
+                        spinnerEl = document.createElement('div');
+                        spinnerEl.id = 'purchase-modal-spinner';
+                        spinnerEl.style = 'position:absolute;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;z-index:10001;pointer-events:none;';
+                        spinnerEl.innerHTML = '<div style="width:64px;height:64px;border-radius:8px;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;"><svg class="animate-spin" width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.12)" stroke-width="3"></circle><path d="M22 12a10 10 0 00-10-10" stroke="#fff" stroke-width="3" stroke-linecap="round"></path></svg></div>';
+                        overlayEl.appendChild(spinnerEl);
+                    }
                     const pack = packList.find(p => (p.id || p._id || p.name || p.packId || p.pack) === pid);
                     const pwdVal = (passwordInput ? (passwordInput.value || '').trim() : (obj.delivery_password || ''));
                     const body = { email: emailVal, name: '', packId: pid, credits: pack && (pack.credits || pack.amount) || null, stateObj, password: pwdVal };
@@ -455,6 +634,14 @@ function setupFormListeners() {
                     if (url) { window.location.href = url; return; }
                     alert('Payment link not returned');
                 } catch (e) { alert('Error creating payment link: ' + (e && e.message || e)); }
+                finally {
+                    try {
+                        if (overlayEl) {
+                            try { overlayEl.querySelectorAll('button').forEach(b => b.disabled = false); } catch(e){}
+                            const sp = document.getElementById('purchase-modal-spinner'); if (sp) sp.remove();
+                        }
+                    } catch(e) {}
+                }
             }
 
             packList.forEach(p => {
