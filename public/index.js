@@ -733,39 +733,34 @@ function setupFormListeners() {
             packList.forEach(p => {
                 const pid = p.id || p._id || p.name || p.packId || p.pack || '';
                 const card = document.createElement('div');
-                card.style = 'text-align:left;border-radius:12px;padding:16px;background:linear-gradient(135deg, rgba(0,194,194,0.12), rgba(7,17,22,0.12));border:1px solid rgba(255,255,255,0.03);cursor:pointer;display:flex;flex-direction:column;gap:12px;min-height:140px;';
+                card.style = 'text-align:left;border-radius:12px;padding:16px;background:linear-gradient(135deg, rgba(0,194,194,0.08), rgba(7,17,22,0.06));border:1px solid rgba(255,255,255,0.03);cursor:pointer;display:flex;flex-direction:column;gap:10px;min-height:140px;';
 
-                const topRow = document.createElement('div');
-                topRow.style = 'display:flex;justify-content:space-between;align-items:center;gap:8px;';
-                const lbl = document.createElement('div'); lbl.style = 'font-weight:800;color:#e6eef5;font-size:16px;'; lbl.innerText = (p.label || p.name || pid || 'Pack');
-                const dot = document.createElement('div'); dot.className = 'pack-select-dot'; dot.style = 'width:12px;height:12px;border-radius:999px;background:#00c2c2;';
-                dot.classList.add('hidden');
-                topRow.appendChild(lbl); topRow.appendChild(dot);
+                const lbl = document.createElement('div'); lbl.style = 'font-weight:800;color:#e6eef5;font-size:16px;margin-bottom:4px;'; lbl.innerText = (p.label || p.name || pid || 'Pack');
 
-                const mid = document.createElement('div'); mid.style = 'color:#c9d6dd;font-size:14px;';
-                const creditsText = (typeof p.credits !== 'undefined' && p.credits !== null) ? String(p.credits) + ' credits' : '';
-                const priceText = (typeof p.amount !== 'undefined' && p.amount !== null) ? (p.currency ? (p.currency + ' ' + p.amount) : (p.amount + '')) : '';
-                if (creditsText && priceText) mid.innerText = creditsText + ' • ' + priceText;
-                else mid.innerText = (creditsText || priceText || '—');
+                const amountRow = document.createElement('div'); amountRow.style = 'display:flex;gap:8px;align-items:flex-end;color:#c9d6dd;font-size:14px;';
+                const currency = document.createElement('div'); currency.style = 'opacity:0.85;font-size:13px;'; currency.innerText = (p.currency || '');
+                const amount = document.createElement('div'); amount.style = 'font-weight:800;font-size:18px;color:#e6eef5;'; amount.innerText = (typeof p.amount !== 'undefined' && p.amount !== null) ? String(p.amount) : ((typeof p.credits !== 'undefined' && p.credits !== null) ? String(p.credits) : '—');
+                amountRow.appendChild(currency); amountRow.appendChild(amount);
 
-                // inject benefits HTML if present
+                card.appendChild(lbl);
+                card.appendChild(amountRow);
+
+                // benefits HTML (if present)
                 if (p.benefits) {
                     const ben = document.createElement('div');
                     ben.className = 'pack-benefits';
-                    ben.style = 'color:#9fb0be;font-size:13px;margin-top:6px;';
+                    ben.style = 'color:#9fb0be;font-size:13px;margin-top:8px;margin-bottom:6px;';
                     try { ben.innerHTML = p.benefits; } catch (e) { ben.textContent = String(p.benefits); }
-                    // append benefits below mid
-                    // ensure benefits appear before buy button
                     card.appendChild(ben);
                 }
 
-                const buyRow = document.createElement('div'); buyRow.style = 'display:flex;justify-content:flex-end;';
-                const buyBtn = document.createElement('button'); buyBtn.type = 'button'; buyBtn.innerText = 'Buy'; buyBtn.style = 'background:#00c2c2;color:#071116;border:none;padding:10px 14px;border-radius:999px;cursor:pointer;font-weight:800;box-shadow:0 6px 18px rgba(0,0,0,0.45);';
+                // buy button full width
+                const buyBtn = document.createElement('button');
+                buyBtn.type = 'button';
+                buyBtn.innerText = 'Buy';
+                buyBtn.style = 'width:100%;display:inline-flex;align-items:center;justify-content:center;background:#00c2c2;color:#071116;border:none;padding:12px;border-radius:10px;cursor:pointer;font-weight:800;box-shadow:0 6px 18px rgba(0,0,0,0.45);';
                 buyBtn.addEventListener('click', (ev) => { ev.stopPropagation(); buyPackById(pid, buyBtn); });
-                buyRow.appendChild(buyBtn);
-
-                card.appendChild(topRow); card.appendChild(mid);
-                card.appendChild(buyRow);
+                card.appendChild(buyBtn);
 
                 card.addEventListener('click', () => { markSelected(pid); });
                 grid.appendChild(card);
@@ -802,10 +797,10 @@ function setupFormListeners() {
 
             const overlay = document.createElement('div');
             overlay.id = 'avatar-modal';
-            overlay.style = 'position:fixed;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);z-index:9999;padding:20px;backdrop-filter:blur(6px);';
+            overlay.style = 'position:fixed;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);z-index:9999;padding:0 20px;backdrop-filter:blur(6px);';
             const box = document.createElement('div');
-            box.style = 'background:#0b1220;color:#e6eef5;border-radius:12px;padding:20px;max-width:900px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.03);';
-            const header = document.createElement('div'); header.style = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;position:sticky;top:0;z-index:12;background:#0b1220;padding-top:0;padding-bottom:8px;';
+            box.style = 'background:#0b1220;color:#e6eef5;border-radius:12px;padding:0 0 20px 0;max-width:900px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.03);';
+            const header = document.createElement('div'); header.style = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;position:sticky;top:0;z-index:99999;background-color:#0b1220;border-bottom:1px solid rgba(255,255,255,0.03);padding:12px 20px 8px;';
             const title = document.createElement('div'); title.innerText = 'Choose Avatar'; title.style = 'font-weight:700;font-size:18px;color:#e6eef5;';
             const closeBtn = document.createElement('button'); closeBtn.innerText = 'Close'; closeBtn.style = 'background:transparent;border:none;color:#94a3b8;font-weight:600;cursor:pointer;padding:6px 8px;border-radius:6px;';
 
@@ -840,7 +835,7 @@ function setupFormListeners() {
                 const chooseBtn = document.createElement('button');
                 chooseBtn.type = 'button';
                 chooseBtn.innerText = 'Choose';
-                chooseBtn.style = 'position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:20;background:rgba(250,250,245,0.95);color:#071116;border:none;padding:8px 14px;border-radius:999px;cursor:pointer;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,0.5);';
+                chooseBtn.style = 'position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:10;background:rgba(250,250,245,0.95);color:#071116;border:none;padding:8px 14px;border-radius:999px;cursor:pointer;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,0.5);';
                 chooseBtn.addEventListener('click', (ev) => { ev.preventDefault(); ev.stopPropagation(); try { obj.avatarId = id; try { localStorage.setItem('bhashya_selected_avatar', id); } catch (e) {} if (typeof updateSelectedAvatarUI === 'function') updateSelectedAvatarUI(a); window.__recentlyClosedAvatarModal = Date.now(); removeOverlay(); } catch (e) { console.warn(e); }});
                 imgWrap.appendChild(chooseBtn);
 
@@ -930,7 +925,7 @@ function setupFormListeners() {
                 const priceText = (typeof p.amount !== 'undefined' && p.amount !== null) ? (p.currency ? (p.currency + ' ' + p.amount) : (p.amount + '')) : '';
                 mid.innerText = creditsText + (priceText ? (' • ' + priceText) : '');
                 const buyRow = document.createElement('div'); buyRow.style = 'display:flex;justify-content:flex-end;';
-                const buyBtn = document.createElement('button'); buyBtn.type = 'button'; buyBtn.innerText = 'Buy'; buyBtn.style = 'background:#00c2c2;color:#071116;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:700;';
+                const buyBtn = document.createElement('button'); buyBtn.type = 'button'; buyBtn.innerText = 'Buy'; buyBtn.style = 'display:inline-flex;align-items:center;justify-content:center;background:#00c2c2;color:#071116;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:700;';
                 buyBtn.addEventListener('click', (ev) => {
                     ev.stopPropagation();
                     const pwd = prompt('Enter your account password to proceed with purchase');
