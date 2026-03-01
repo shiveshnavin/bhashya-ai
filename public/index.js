@@ -132,10 +132,14 @@ function setupFormListeners() {
             const resp = await fetch(url, { method: 'GET' });
             if (!resp.ok) { if (cc) { cc.textContent = 'Credits: —'; cc.classList.remove('hidden'); } return; }
             const data = await resp.json();
-            const count = (typeof data.credits !== 'undefined') ? Number(data.credits) : Number((data && data.available) || 0) || 0;
-            if (cc) { cc.textContent = 'Credits: ' + (Number.isFinite(count) ? count : 0); cc.classList.remove('hidden'); }
+            // compute display = total credits - held credits (support multiple field names)
+            const total = (typeof data.credits !== 'undefined') ? Number(data.credits) : Number((data && data.available) || 0) || 0;
+            const held = Number((data && (data.held || data.creditsHeld || data.credits_held || data.heldCredits || data.held_amount)) || 0) || 0;
+            const display = Math.max(0, total - (Number.isFinite(held) ? held : 0));
+            if (cc) { cc.textContent = 'Credits: ' + (Number.isFinite(display) ? display : 0); cc.classList.remove('hidden'); }
         } catch (e) { try { const cc = document.getElementById('credits-count'); if (cc) { cc.textContent = 'Credits: —'; cc.classList.remove('hidden'); } } catch (e2) {} }
     }
+    window.updateHeaderCredits = updateHeaderCredits;
 
     // Login modal helper (shown when user clicks Generate but isn't logged in)
     function showLoginModal(onSuccess, opts) {
@@ -293,6 +297,7 @@ function setupFormListeners() {
             lb.onclick = () => { try { localStorage.removeItem('bhashya_delivery_email'); localStorage.removeItem('bhashya_delivery_password'); } catch (e) {} updateHeaderCredits(null); lb.classList.add('hidden'); };
         } catch (e) { }
     }
+    window.updateLogoutUI = updateLogoutUI;
 
     // run once on load
     setTimeout(updatePremiumUI, 50);
@@ -1292,6 +1297,16 @@ function initSampleVideos() {
 if (typeof window !== 'undefined') {
     window.addEventListener('load', () => {
         try { initSampleVideos(); } catch (e) { console.error(e); }
+        // initialize form listeners and fetch credits if stored credentials present
+        try { if (typeof setupFormListeners === 'function') setupFormListeners(); } catch (e) { /* ignore */ }
+        try {
+            const storedEmail = (() => { try { return localStorage.getItem('bhashya_delivery_email'); } catch (e) { return null; } })();
+            const storedPwd = (() => { try { return localStorage.getItem('bhashya_delivery_password'); } catch (e) { return null; } })();
+            if (storedEmail && storedPwd && typeof updateHeaderCredits === 'function') {
+                try { updateHeaderCredits(storedEmail, storedPwd); } catch (e) {}
+                try { if (typeof updateLogoutUI === 'function') updateLogoutUI(); } catch (e) {}
+            }
+        } catch (e) { /* ignore */ }
     });
 }
 
