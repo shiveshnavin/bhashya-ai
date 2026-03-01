@@ -191,6 +191,15 @@ app.post('/api/generate', async (req, res, next) => {
             return res.status(402).json({ error: 'Insufficient credits', requiredCredits: check.requiredCredits, availableCredits: check.availableCredits || 0, packs });
         }
         req._creditCheck = check;
+        try {
+            if (req._creditCheck.allowed && !req._creditCheck.free && Number(req._creditCheck.requiredCredits) > 0) {
+                // place a hold immediately so credits are reserved while backend processes
+                await service.holdCredits(email, req._creditCheck.requiredCredits, null, password);
+                req._creditCheck.holdApplied = true;
+            }
+        } catch (e) {
+            console.warn('pre-holdCredits failed', e && e.message || e);
+        }
         return next();
     } catch (err) {
         console.error('Error in /api/generate precheck', err && err.message || err);
@@ -267,7 +276,12 @@ app.use('/api', createProxyMiddleware({
                 // Always attempt to place a hold when the pre-check allowed generation (even if backend didn't return an id)
                 if (req._creditCheck && req._creditCheck.allowed && !req._creditCheck.free) {
                     try {
-                        await service.holdCredits(req.body.delivery_email || req.body.email, req._creditCheck.requiredCredits, id, req.body.delivery_password || req.body.password);
+                        if (!req._creditCheck.holdApplied) {
+                            await service.holdCredits(req.body.delivery_email || req.body.email, req._creditCheck.requiredCredits, id, req.body.delivery_password || req.body.password);
+                        } else if (id) {
+                            // hold was already applied earlier without generation id; attach metadata to generation without modifying account credits
+                            try { await service.attachHoldToGeneration(id, req._creditCheck.requiredCredits, req.body.delivery_email || req.body.email); } catch (e) { /* ignore */ }
+                        }
                     } catch (e) {
                         console.warn('holdCredits failed', e && e.message || e);
                     }

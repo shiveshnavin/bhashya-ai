@@ -364,6 +364,18 @@ class Service {
         // require password verification to prevent unauthorized holds
         const ok = await this.verifyPassword(email, password);
         if (!ok) throw new Error('invalid password');
+
+        // If generationId provided and generation already has creditsHeld, avoid double-hold
+        if (generationId) {
+            try {
+                const genExists = await this.db.getOne(TABLE_GENERATIONS, {}, generationId);
+                if (genExists && (genExists.creditsHeld || genExists.creditsHeld === 0)) {
+                    // already associated with a hold - no-op to avoid duplicating held credits
+                    return;
+                }
+            } catch (e) { /* ignore lookup errors, proceed */ }
+        }
+
         const existing = await this.db.getOne(TABLE_CREDITS, {}, email);
         const data = existing || { credits: 0, held: 0, freeCount: 0 };
         const available = (data.credits || 0) - (data.held || 0);
@@ -381,6 +393,15 @@ class Service {
             if (genExists) await this.db.update(TABLE_GENERATIONS, {}, genDoc, generationId);
             else await this.db.insert(TABLE_GENERATIONS, genDoc, generationId);
         }
+    }
+
+    // Attach hold metadata to a generation without modifying user's credits (useful when hold was placed earlier without generation id)
+    async attachHoldToGeneration(generationId, credits, email) {
+        if (!generationId) return;
+        const genDoc = { creditsHeld: Number(credits) || 0, creditsHeldBy: email || null, creditsHoldTimestamp: Date.now() };
+        const genExists = await this.db.getOne(TABLE_GENERATIONS, {}, generationId);
+        if (genExists) await this.db.update(TABLE_GENERATIONS, {}, genDoc, generationId);
+        else await this.db.insert(TABLE_GENERATIONS, genDoc, generationId);
     }
 
     async deductCredits(email, credits, generationId) {

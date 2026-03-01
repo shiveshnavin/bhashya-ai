@@ -73,7 +73,7 @@ function setupFormListeners() {
     // when avatar video-type is clicked, open avatar chooser
     try {
         const avatarBtn = document.querySelector('[data-video-type="avatar"]');
-        if (avatarBtn) avatarBtn.addEventListener('click', () => { try { setTimeout(() => { showAvatarChooser(); }, 60); } catch (e) { /* ignore */ } });
+        if (avatarBtn) avatarBtn.addEventListener('click', (ev) => { try { if (!ev || !ev.isTrusted) return; setTimeout(() => { showAvatarChooser(); }, 60); } catch (e) { /* ignore */ } });
     } catch (e) { }
 
     // Content Category Select
@@ -525,9 +525,15 @@ function setupFormListeners() {
             overlay.style = 'position:fixed;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);z-index:9999;padding:20px;backdrop-filter:blur(6px);';
             const box = document.createElement('div');
             box.style = 'background:#0b1220;color:#e6eef5;border-radius:12px;padding:20px;max-width:900px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.03);';
-            const header = document.createElement('div'); header.style = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;';
+            const header = document.createElement('div'); header.style = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;position:sticky;top:0;z-index:12;background:#0b1220;padding-top:0;padding-bottom:8px;';
             const title = document.createElement('div'); title.innerText = 'Choose Avatar'; title.style = 'font-weight:700;font-size:18px;color:#e6eef5;';
-            const closeBtn = document.createElement('button'); closeBtn.innerText = 'Close'; closeBtn.style = 'background:transparent;border:none;color:#94a3b8;font-weight:600;cursor:pointer;padding:6px 8px;border-radius:6px;'; closeBtn.onclick = () => { overlay.remove(); };
+            const closeBtn = document.createElement('button'); closeBtn.innerText = 'Close'; closeBtn.style = 'background:transparent;border:none;color:#94a3b8;font-weight:600;cursor:pointer;padding:6px 8px;border-radius:6px;';
+
+            function removeOverlay() { try { document.removeEventListener('keydown', onKeydown); } catch(e){} try { overlay.remove(); } catch(e){} }
+            function onKeydown(e) { if (e && (e.key === 'Escape' || e.key === 'Esc' || e.keyCode === 27)) { removeOverlay(); } }
+            document.addEventListener('keydown', onKeydown);
+
+            closeBtn.onclick = removeOverlay;
             header.appendChild(title); header.appendChild(closeBtn); box.appendChild(header);
 
             const grid = document.createElement('div'); grid.style = 'display:grid;grid-template-columns:repeat(auto-fit, minmax(180px,1fr));gap:12px;margin-bottom:12px;';
@@ -535,14 +541,32 @@ function setupFormListeners() {
             if (!list.length) { const p = document.createElement('div'); p.style='color:#cbd5e1'; p.textContent='No avatars available.'; box.appendChild(p); overlay.appendChild(box); document.body.appendChild(overlay); return; }
             list.forEach(a => {
                 const id = a.id || a._id || '';
-                const card = document.createElement('div'); card.style='background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03);padding:10px;border-radius:8px;display:flex;flex-direction:column;gap:8px;';
-                const img = document.createElement('img'); img.style='width:100%;height:120px;object-fit:cover;border-radius:6px;'; img.src = a.cover_path || a.path || (a.cover || ''); img.alt = a.name || id;
-                const name = document.createElement('div'); name.style='font-weight:700;color:#e6eef5;'; name.textContent = a.name || id;
-                const chooseRow = document.createElement('div'); chooseRow.style='display:flex;justify-content:flex-end;';
-                const chooseBtn = document.createElement('button'); chooseBtn.type='button'; chooseBtn.innerText='Choose'; chooseBtn.style='background:#00c2c2;color:#071116;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:700;';
-                chooseBtn.addEventListener('click', (ev) => { ev.stopPropagation(); try { obj.avatarId = id; try { localStorage.setItem('bhashya_selected_avatar', id); } catch (e) {} if (typeof updateSelectedAvatarUI === 'function') updateSelectedAvatarUI(a); overlay.remove(); } catch (e) { console.warn(e); }});
-                chooseRow.appendChild(chooseBtn);
-                card.appendChild(img); card.appendChild(name); card.appendChild(chooseRow);
+                const card = document.createElement('div'); card.style='background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03);padding:10px;border-radius:8px;display:flex;flex-direction:column;gap:8px;position:relative;';
+
+                // image container with 9:16 aspect ratio
+                const imgWrap = document.createElement('div');
+                imgWrap.style = 'position:relative;width:100%;aspect-ratio:9/16;overflow:hidden;border-radius:6px;';
+                const img = document.createElement('img');
+                img.style = 'position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;';
+                img.src = a.cover_path || a.path || (a.cover || ''); img.alt = a.name || id;
+                imgWrap.appendChild(img);
+
+                // gradient overlay from bottom upwards
+                const grad = document.createElement('div');
+                grad.style = 'position:absolute;left:0;right:0;bottom:0;height:50%;background:linear-gradient(0deg, rgba(0,0,0,0.75), rgba(0,0,0,0.0));pointer-events:none;';
+                imgWrap.appendChild(grad);
+
+                // centered choose button at bottom of image
+                const chooseBtn = document.createElement('button');
+                chooseBtn.type = 'button';
+                chooseBtn.innerText = 'Choose';
+                chooseBtn.style = 'position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:20;background:rgba(250,250,245,0.95);color:#071116;border:none;padding:8px 14px;border-radius:999px;cursor:pointer;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,0.5);';
+                chooseBtn.addEventListener('click', (ev) => { ev.stopPropagation(); try { obj.avatarId = id; try { localStorage.setItem('bhashya_selected_avatar', id); } catch (e) {} if (typeof updateSelectedAvatarUI === 'function') updateSelectedAvatarUI(a); removeOverlay(); } catch (e) { console.warn(e); }});
+                imgWrap.appendChild(chooseBtn);
+
+                const name = document.createElement('div'); name.style='font-weight:700;color:#e6eef5;padding-top:8px;'; name.textContent = a.name || id;
+
+                card.appendChild(imgWrap); card.appendChild(name);
                 grid.appendChild(card);
             });
             box.appendChild(grid); overlay.appendChild(box); document.body.appendChild(overlay);
