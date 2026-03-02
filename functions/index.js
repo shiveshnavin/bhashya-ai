@@ -199,7 +199,7 @@ app.post('/api/generate', async (req, res, next) => {
             return res.status(402).json({ error: 'Insufficient credits', requiredCredits: check.requiredCredits, availableCredits: check.availableCredits || 0, packs });
         }
         req._creditCheck = check;
-        req.body.token = process.env.PAID_TOKEN;
+        req.body.token = check.token
         const targetUrl = (proxyTarget || '').replace(/\/$/, '') + '/api/generate';
         // ensure origin preserved
         try { req.body.origin = req.get('origin') || req.get('referer') || req.headers.origin || ''; } catch (e) { }

@@ -443,12 +443,12 @@ class Service {
         if (isFreeFormFactor) {
             const used = data.freeCount || 0;
             if (used < maxFreeGenerationsPerUser) {
-                return { allowed: true, free: true, requiredCredits: 0 };
+                return { allowed: true, free: true, requiredCredits: 0, token: 'free' };
             }
         }
 
         if (available >= required) {
-            return { allowed: true, free: false, requiredCredits: required, availableCredits: available };
+            return { allowed: true, free: false, requiredCredits: required, availableCredits: available, token: process.env.PAID_TOKEN };
         }
         return { allowed: false, requiredCredits: required, availableCredits: available };
 
