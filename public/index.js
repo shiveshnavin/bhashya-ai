@@ -1644,6 +1644,16 @@ if (typeof window !== 'undefined') {
                                 if (stoppedEl) { try { stoppedEl.classList.remove('hidden'); const titleEl = stoppedEl.querySelector('.font-bold'); const subEl = stoppedEl.querySelector('div.text-xs'); if (titleEl) titleEl.textContent = 'Generation failed'; if (subEl) subEl.textContent = 'An error occurred during generation.'; } catch (e) { } }
                                 try { const dot = document.querySelector('[data-generation-exec-dot]'); if (dot) dot.classList.add('hidden'); } catch (e) { }
 
+                                // When generation fails the backend should have refunded any held credits.
+                                // Refresh header credits to reflect the refund (if the user is logged in locally).
+                                try {
+                                    const storedEmail = (() => { try { return localStorage.getItem('bhashya_delivery_email'); } catch (e) { return null; } })();
+                                    const storedPwd = (() => { try { return localStorage.getItem('bhashya_delivery_password'); } catch (e) { return null; } })();
+                                    if (storedEmail && typeof updateHeaderCredits === 'function') {
+                                        try { updateHeaderCredits(storedEmail, storedPwd); } catch (e) { /* ignore */ }
+                                    }
+                                } catch (e) { /* ignore credit refresh errors */ }
+
                             } else if (isSuccess) {
                                 try { if (percentEl) percentEl.textContent = 'Success'; } catch (e) { }
                                 try { if (barEl) barEl.style.width = '100%'; } catch (e) { }
@@ -2262,7 +2272,11 @@ window.applyReturnState = function () {
         }
         if (status === 'TXN_SUCCESS') {
             const genBtn = document.getElementById('generate-btn');
-            if (genBtn) setTimeout(() => genBtn.click(), 300);
+            if (genBtn) setTimeout(() => {
+                try { genBtn.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+                try { genBtn.focus(); } catch (e) {}
+                try { genBtn.click(); } catch (e) {}
+            }, 300);
         }
     } catch (e) { console.warn('applyReturnState error', e); }
 };

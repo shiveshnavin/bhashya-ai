@@ -450,7 +450,6 @@ class Service {
         if (available >= required) {
             return { allowed: true, free: false, requiredCredits: required, availableCredits: available };
         }
-        generationInput.token = process.env.PAID_TOKEN
         return { allowed: false, requiredCredits: required, availableCredits: available };
 
     }
