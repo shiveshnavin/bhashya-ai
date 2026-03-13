@@ -260,6 +260,24 @@ app.post('/api/generate', async (req, res, next) => {
     }
 });
 
+// Forward GET /api/generate/:id to downstream
+app.get('/api/generate/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+        const targetUrl = (proxyTarget || '').replace(/\/$/, '') + '/api/generate/' + encodeURIComponent(id);
+        const fetchResp = await fetch(targetUrl, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+        const status = fetchResp.status;
+        const bodyStr = await fetchResp.text();
+        let parsed = null;
+        try { parsed = JSON.parse(bodyStr); } catch (e) { parsed = null; }
+        if (parsed) return res.status(status).json(parsed);
+        return res.status(status).send(bodyStr);
+    } catch (err) {
+        console.error('Error forwarding GET /api/generate/:id', err && err.message || err);
+        return res.status(502).json({ error: 'Bad gateway' });
+    }
+});
+
 // Forward DELETE /api/generate/:id to downstream
 app.delete('/api/generate/:id', async (req, res) => {
     try {

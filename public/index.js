@@ -56,7 +56,7 @@ function setupFormListeners() {
     // on load: try to preselect avatar from localStorage
     try {
         const storedAvatar = (() => { try { return localStorage.getItem('bhashya_selected_avatar'); } catch (e) { return null; } })();
-        if (storedAvatar) { selectAvatarById(storedAvatar).catch(() => {}); }
+        if (storedAvatar) { selectAvatarById(storedAvatar).catch(() => { }); }
     } catch (e) { }
 
 
@@ -74,7 +74,7 @@ function setupFormListeners() {
 
     // persist and restore gender selection
     try {
-        const storedGender = (() => { try { return localStorage.getItem('bhashya_gender'); } catch(e){ return null; } })();
+        const storedGender = (() => { try { return localStorage.getItem('bhashya_gender'); } catch (e) { return null; } })();
         const genderBtns = Array.from(document.querySelectorAll('[data-voice-gender]'));
         if (storedGender) {
             const btn = genderBtns.find(b => b.getAttribute('data-voice-gender') === storedGender);
@@ -82,10 +82,10 @@ function setupFormListeners() {
         } else {
             // default to male
             const btn = genderBtns.find(b => b.getAttribute('data-voice-gender') === 'male');
-            if (btn) { btn.click(); try { localStorage.setItem('bhashya_gender', 'male'); } catch(e){} }
+            if (btn) { btn.click(); try { localStorage.setItem('bhashya_gender', 'male'); } catch (e) { } }
         }
-        genderBtns.forEach(b => b.addEventListener('click', () => { try { localStorage.setItem('bhashya_gender', b.getAttribute('data-voice-gender')); } catch(e){} }));
-    } catch (e) {}
+        genderBtns.forEach(b => b.addEventListener('click', () => { try { localStorage.setItem('bhashya_gender', b.getAttribute('data-voice-gender')); } catch (e) { } }));
+    } catch (e) { }
 
 
     // when avatar video-type is clicked, open avatar chooser
@@ -101,11 +101,11 @@ function setupFormListeners() {
                     thumb = document.createElement('img');
                     thumb.id = 'video-type-slideshow-thumb';
                     thumb.style = 'width:72px;height:72px;object-fit:cover;border-radius:8px;margin-bottom:6px;display:block;';
-                    try { slideBtn.insertBefore(thumb, slideBtn.firstChild); } catch (e) { try { slideBtn.appendChild(thumb); } catch (e2) {} }
+                    try { slideBtn.insertBefore(thumb, slideBtn.firstChild); } catch (e) { try { slideBtn.appendChild(thumb); } catch (e2) { } }
                 }
-                try { thumb.src = 'graphical.png'; thumb.alt = 'Graphics'; thumb.style.display = 'block'; } catch (e) {}
+                try { thumb.src = 'graphical.png'; thumb.alt = 'Graphics'; thumb.style.display = 'block'; } catch (e) { }
             }
-        } catch (e) {}
+        } catch (e) { }
     } catch (e) { }
 
     // Content Category Select
@@ -169,13 +169,14 @@ function setupFormListeners() {
             const held = Number((data && (data.held || data.creditsHeld || data.credits_held || data.heldCredits || data.held_amount)) || 0) || 0;
             const display = Math.max(0, total - (Number.isFinite(held) ? held : 0));
             if (cc) { cc.textContent = 'Credits: ' + (Number.isFinite(display) ? display : 0); cc.classList.remove('hidden'); }
-        } catch (e) { try { const cc = document.getElementById('credits-count'); if (cc) { cc.textContent = 'Credits: —'; cc.classList.remove('hidden'); } } catch (e2) {} }
+        } catch (e) { try { const cc = document.getElementById('credits-count'); if (cc) { cc.textContent = 'Credits: —'; cc.classList.remove('hidden'); } } catch (e2) { } }
     }
     window.updateHeaderCredits = updateHeaderCredits;
 
     // Login modal helper (shown when user clicks Generate but isn't logged in)
     function showLoginModal(onSuccess, opts) {
         try {
+            const existing = document.getElementById('login-modal'); if (existing) try { existing.remove(); } catch (e) { }
             const mode = (opts && opts.mode) ? opts.mode : 'login';
             const presetEmail = (opts && opts.email) ? opts.email : (() => { try { return localStorage.getItem('bhashya_delivery_email'); } catch (e) { return ''; } })();
             const presetToken = (opts && opts.token) ? opts.token : null;
@@ -196,32 +197,32 @@ function setupFormListeners() {
                 tabsRow.appendChild(signInTab); tabsRow.appendChild(signUpTab);
                 box.appendChild(tabsRow);
 
-                let currentTab = (mode === 'confirm' || mode === 'login') ? 'login' : (mode === 'signup' ? 'signup' : 'login');
+                let currentTab = (mode === 'confirm' || mode === 'login') ? 'login' : 'signup';
 
                 const title = document.createElement('div'); title.innerText = 'Sign in to continue'; title.style = 'font-weight:700;font-size:18px;color:#e6eef5;margin-bottom:8px;';
                 box.appendChild(title);
-                const info = document.createElement('div'); info.style='color:#cbd5e1;margin-bottom:12px;'; info.innerText = 'Please sign in with your email and account password to secure credits and continue generation.';
+                const info = document.createElement('div'); info.style = 'color:#cbd5e1;margin-bottom:12px;'; info.innerText = 'Please sign in with your email and account password to secure credits and continue generation.';
                 box.appendChild(info);
 
-                const emailLabel = document.createElement('label'); emailLabel.innerText = 'Email'; emailLabel.style='display:block;margin-bottom:6px;color:#9fb0be;font-size:12px;';
-                const emailInp = document.createElement('input'); emailInp.type='email'; emailInp.style='width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);margin-bottom:8px;background:#071116;color:#e6eef5;';
+                const emailLabel = document.createElement('label'); emailLabel.innerText = 'Email'; emailLabel.style = 'display:block;margin-bottom:6px;color:#9fb0be;font-size:12px;';
+                const emailInp = document.createElement('input'); emailInp.type = 'email'; emailInp.style = 'width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);margin-bottom:8px;background:#071116;color:#e6eef5;';
                 if (presetEmail) emailInp.value = presetEmail;
                 box.appendChild(emailLabel); box.appendChild(emailInp);
 
-                const pwdLabel = document.createElement('label'); pwdLabel.innerText = 'Password'; pwdLabel.style='display:block;margin-bottom:6px;color:#9fb0be;font-size:12px;';
-                const pwdInp = document.createElement('input'); pwdInp.type='password'; pwdInp.style='width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);margin-bottom:8px;background:#071116;color:#e6eef5;';
+                const pwdLabel = document.createElement('label'); pwdLabel.innerText = 'Password'; pwdLabel.style = 'display:block;margin-bottom:6px;color:#9fb0be;font-size:12px;';
+                const pwdInp = document.createElement('input'); pwdInp.type = 'password'; pwdInp.style = 'width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);margin-bottom:8px;background:#071116;color:#e6eef5;';
                 const storedPwd = (() => { try { return localStorage.getItem('bhashya_delivery_password'); } catch (e) { return null; } })();
                 if (storedPwd) pwdInp.value = storedPwd;
                 box.appendChild(pwdLabel); box.appendChild(pwdInp);
 
-                const forgotLink = document.createElement('a'); forgotLink.href = '#'; forgotLink.style='display:inline-block;margin-bottom:12px;color:#7dd3fc;font-size:13px;cursor:pointer;'; forgotLink.innerText = 'Forgot password?';
+                const forgotLink = document.createElement('a'); forgotLink.href = '#'; forgotLink.style = 'display:inline-block;margin-bottom:12px;color:#7dd3fc;font-size:13px;cursor:pointer;'; forgotLink.innerText = 'Forgot password?';
                 box.appendChild(forgotLink);
 
-                const err = document.createElement('div'); err.id='login-modal-error'; err.style='color:#ff8a8a;margin-bottom:8px;display:none;'; box.appendChild(err);
+                const err = document.createElement('div'); err.id = 'login-modal-error'; err.style = 'color:#ff8a8a;margin-bottom:8px;display:none;'; box.appendChild(err);
 
-                const row = document.createElement('div'); row.style='display:flex;justify-content:flex-end;gap:8px;';
-                const cancelBtn = document.createElement('button'); cancelBtn.type='button'; cancelBtn.innerText='Cancel'; cancelBtn.style='background:transparent;border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:8px 12px;border-radius:6px;cursor:pointer;';
-                const loginBtn = document.createElement('button'); loginBtn.type='button'; loginBtn.innerText='Sign in'; loginBtn.style='background:#00c2c2;color:#071116;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:700;';
+                const row = document.createElement('div'); row.style = 'display:flex;justify-content:flex-end;gap:8px;';
+                const cancelBtn = document.createElement('button'); cancelBtn.type = 'button'; cancelBtn.innerText = 'Cancel'; cancelBtn.style = 'background:transparent;border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:8px 12px;border-radius:6px;cursor:pointer;';
+                const loginBtn = document.createElement('button'); loginBtn.type = 'button'; loginBtn.innerText = 'Sign in'; loginBtn.style = 'background:#00c2c2;color:#071116;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:700;';
                 row.appendChild(cancelBtn); row.appendChild(loginBtn);
                 box.appendChild(row);
 
@@ -253,23 +254,23 @@ function setupFormListeners() {
                     const email = (emailInp.value || '').trim();
                     const pwd = (pwdInp.value || '').trim();
                     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                    if (!email || !emailRegex.test(email)) { err.style.display='block'; err.textContent='Enter a valid email'; return; }
-                    if (!pwd) { err.style.display='block'; err.textContent=(currentTab==='signup' ? 'Enter a password' : 'Enter your password'); return; }
+                    if (!email || !emailRegex.test(email)) { err.style.display = 'block'; err.textContent = 'Enter a valid email'; return; }
+                    if (!pwd) { err.style.display = 'block'; err.textContent = (currentTab === 'signup' ? 'Enter a password' : 'Enter your password'); return; }
                     try {
                         loginBtn.disabled = true;
                         // spinner only (no text)
                         loginBtn.innerHTML = '<svg class="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)" stroke-width="3"></circle><path d="M22 12a10 10 0 00-10-10" stroke="#fff" stroke-width="3" stroke-linecap="round"></path></svg>';
                         const resp = await fetch('/api/credits?email=' + encodeURIComponent(email) + '&password=' + encodeURIComponent(pwd), { method: 'GET' });
-                        if (!resp.ok) { err.style.display='block'; err.textContent='Invalid email or password'; return; }
+                        if (!resp.ok) { err.style.display = 'block'; err.textContent = 'Invalid email or password'; return; }
                         const data = await resp.json();
-                        try { localStorage.setItem('bhashya_delivery_email', email); localStorage.setItem('bhashya_delivery_password', pwd); } catch (e) {}
+                        try { localStorage.setItem('bhashya_delivery_email', email); localStorage.setItem('bhashya_delivery_password', pwd); } catch (e) { }
                         obj.delivery_email = email; obj.delivery_password = pwd;
                         updateHeaderCredits(email, pwd);
                         updateLogoutUI();
                         cleanup();
                         if (typeof onSuccess === 'function') setTimeout(onSuccess, 20);
-                    } catch (e) { err.style.display='block'; err.textContent='Login failed'; }
-                    finally { try { loginBtn.disabled = false; loginBtn.innerText = (currentTab==='signup' ? 'Sign up' : 'Sign in'); } catch(e){} }
+                    } catch (e) { err.style.display = 'block'; err.textContent = 'Login failed'; }
+                    finally { try { loginBtn.disabled = false; loginBtn.innerText = (currentTab === 'signup' ? 'Sign up' : 'Sign in'); } catch (e) { } }
                 });
 
                 forgotLink.addEventListener('click', (ev) => {
@@ -281,21 +282,21 @@ function setupFormListeners() {
                 box.innerHTML = '';
                 const title = document.createElement('div'); title.innerText = 'Reset password'; title.style = 'font-weight:700;font-size:18px;color:#e6eef5;margin-bottom:8px;';
                 box.appendChild(title);
-                const info = document.createElement('div'); info.style='color:#cbd5e1;margin-bottom:12px;'; info.innerText = 'Enter your account email and we will send a password reset link to it.';
+                const info = document.createElement('div'); info.style = 'color:#cbd5e1;margin-bottom:12px;'; info.innerText = 'Enter your account email and we will send a password reset link to it.';
                 box.appendChild(info);
-                const emailLabel = document.createElement('label'); emailLabel.innerText = 'Email'; emailLabel.style='display:block;margin-bottom:6px;color:#9fb0be;font-size:12px;';
-                const emailInp = document.createElement('input'); emailInp.type='email'; emailInp.style='width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);margin-bottom:8px;background:#071116;color:#e6eef5;';
+                const emailLabel = document.createElement('label'); emailLabel.innerText = 'Email'; emailLabel.style = 'display:block;margin-bottom:6px;color:#9fb0be;font-size:12px;';
+                const emailInp = document.createElement('input'); emailInp.type = 'email'; emailInp.style = 'width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);margin-bottom:8px;background:#071116;color:#e6eef5;';
                 if (prefillEmail) emailInp.value = prefillEmail;
                 box.appendChild(emailLabel); box.appendChild(emailInp);
-                const msg = document.createElement('div'); msg.style='color:#9fb0be;margin-bottom:8px;display:none;'; box.appendChild(msg);
-                const row = document.createElement('div'); row.style='display:flex;justify-content:flex-end;gap:8px;';
-                const cancelBtn = document.createElement('button'); cancelBtn.type='button'; cancelBtn.innerText='Close'; cancelBtn.style='background:transparent;border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:8px 12px;border-radius:6px;cursor:pointer;';
-                const sendBtn = document.createElement('button'); sendBtn.type='button'; sendBtn.innerText='Send Reset Link'; sendBtn.style='background:#00c2c2;color:#071116;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:700;';
+                const msg = document.createElement('div'); msg.style = 'color:#9fb0be;margin-bottom:8px;display:none;'; box.appendChild(msg);
+                const row = document.createElement('div'); row.style = 'display:flex;justify-content:flex-end;gap:8px;';
+                const cancelBtn = document.createElement('button'); cancelBtn.type = 'button'; cancelBtn.innerText = 'Close'; cancelBtn.style = 'background:transparent;border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:8px 12px;border-radius:6px;cursor:pointer;';
+                const sendBtn = document.createElement('button'); sendBtn.type = 'button'; sendBtn.innerText = 'Send Reset Link'; sendBtn.style = 'background:#00c2c2;color:#071116;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:700;';
                 row.appendChild(cancelBtn); row.appendChild(sendBtn); box.appendChild(row);
                 cancelBtn.onclick = cleanup;
                 sendBtn.addEventListener('click', async () => {
                     const email = (emailInp.value || '').trim(); const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                    if (!email || !emailRegex.test(email)) { msg.style.display='block'; msg.textContent='Enter a valid email'; return; }
+                    if (!email || !emailRegex.test(email)) { msg.style.display = 'block'; msg.textContent = 'Enter a valid email'; return; }
                     const origText = sendBtn.innerHTML;
                     try {
                         sendBtn.disabled = true;
@@ -303,13 +304,13 @@ function setupFormListeners() {
                         sendBtn.innerHTML = '<svg class="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)" stroke-width="3"></circle><path d="M22 12a10 10 0 00-10-10" stroke="#fff" stroke-width="3" stroke-linecap="round"></path></svg>';
                         const resp = await fetch('/api/password-reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
                         if (resp.ok) {
-                            msg.style.display='block'; msg.style.color = '#9fb0be'; msg.textContent='Reset link sent to ' + email + '. Check your email.';
+                            msg.style.display = 'block'; msg.style.color = '#9fb0be'; msg.textContent = 'Reset link sent to ' + email + '. Check your email.';
                         } else {
-                            const b = await resp.json().catch(()=>null);
-                            msg.style.display='block'; msg.style.color = '#ff8a8a'; msg.textContent = 'Failed to send: ' + (b && (b.error || JSON.stringify(b)) || resp.statusText);
+                            const b = await resp.json().catch(() => null);
+                            msg.style.display = 'block'; msg.style.color = '#ff8a8a'; msg.textContent = 'Failed to send: ' + (b && (b.error || JSON.stringify(b)) || resp.statusText);
                         }
-                    } catch (e) { msg.style.display='block'; msg.style.color = '#ff8a8a'; msg.textContent='Error sending reset link'; }
-                    finally { try { sendBtn.disabled = false; sendBtn.innerHTML = origText; } catch(e){} }
+                    } catch (e) { msg.style.display = 'block'; msg.style.color = '#ff8a8a'; msg.textContent = 'Error sending reset link'; }
+                    finally { try { sendBtn.disabled = false; sendBtn.innerHTML = origText; } catch (e) { } }
                 });
             }
 
@@ -317,44 +318,44 @@ function setupFormListeners() {
                 box.innerHTML = '';
                 const title = document.createElement('div'); title.innerText = 'Set new password'; title.style = 'font-weight:700;font-size:18px;color:#e6eef5;margin-bottom:8px;';
                 box.appendChild(title);
-                const info = document.createElement('div'); info.style='color:#cbd5e1;margin-bottom:12px;'; info.innerText = 'Set a new password for your account.';
+                const info = document.createElement('div'); info.style = 'color:#cbd5e1;margin-bottom:12px;'; info.innerText = 'Set a new password for your account.';
                 box.appendChild(info);
-                const emailLabel = document.createElement('label'); emailLabel.innerText = 'Email'; emailLabel.style='display:block;margin-bottom:6px;color:#9fb0be;font-size:12px;';
-                const emailInp = document.createElement('input'); emailInp.type='email'; emailInp.readOnly = true; emailInp.style='width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);margin-bottom:8px;background:#071116;color:#e6eef5;';
+                const emailLabel = document.createElement('label'); emailLabel.innerText = 'Email'; emailLabel.style = 'display:block;margin-bottom:6px;color:#9fb0be;font-size:12px;';
+                const emailInp = document.createElement('input'); emailInp.type = 'email'; emailInp.readOnly = true; emailInp.style = 'width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);margin-bottom:8px;background:#071116;color:#e6eef5;';
                 emailInp.value = email || '';
                 box.appendChild(emailLabel); box.appendChild(emailInp);
-                const newLabel = document.createElement('label'); newLabel.innerText = 'New password'; newLabel.style='display:block;margin-bottom:6px;color:#9fb0be;font-size:12px;';
-                const newInp = document.createElement('input'); newInp.type='password'; newInp.style='width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);margin-bottom:8px;background:#071116;color:#e6eef5;';
-                const confirmInp = document.createElement('input'); confirmInp.type='password'; confirmInp.placeholder='Confirm password'; confirmInp.style='width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);margin-bottom:12px;background:#071116;color:#e6eef5;';
+                const newLabel = document.createElement('label'); newLabel.innerText = 'New password'; newLabel.style = 'display:block;margin-bottom:6px;color:#9fb0be;font-size:12px;';
+                const newInp = document.createElement('input'); newInp.type = 'password'; newInp.style = 'width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);margin-bottom:8px;background:#071116;color:#e6eef5;';
+                const confirmInp = document.createElement('input'); confirmInp.type = 'password'; confirmInp.placeholder = 'Confirm password'; confirmInp.style = 'width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);margin-bottom:12px;background:#071116;color:#e6eef5;';
                 box.appendChild(newLabel); box.appendChild(newInp); box.appendChild(confirmInp);
-                const msg = document.createElement('div'); msg.style='color:#ff8a8a;margin-bottom:8px;display:none;'; box.appendChild(msg);
-                const row = document.createElement('div'); row.style='display:flex;justify-content:flex-end;gap:8px;';
-                const cancelBtn = document.createElement('button'); cancelBtn.type='button'; cancelBtn.innerText='Close'; cancelBtn.style='background:transparent;border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:8px 12px;border-radius:6px;cursor:pointer;';
-                const setBtn = document.createElement('button'); setBtn.type='button'; setBtn.innerText='Set Password'; setBtn.style='background:#00c2c2;color:#071116;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:700;';
+                const msg = document.createElement('div'); msg.style = 'color:#ff8a8a;margin-bottom:8px;display:none;'; box.appendChild(msg);
+                const row = document.createElement('div'); row.style = 'display:flex;justify-content:flex-end;gap:8px;';
+                const cancelBtn = document.createElement('button'); cancelBtn.type = 'button'; cancelBtn.innerText = 'Close'; cancelBtn.style = 'background:transparent;border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:8px 12px;border-radius:6px;cursor:pointer;';
+                const setBtn = document.createElement('button'); setBtn.type = 'button'; setBtn.innerText = 'Set Password'; setBtn.style = 'background:#00c2c2;color:#071116;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:700;';
                 row.appendChild(cancelBtn); row.appendChild(setBtn); box.appendChild(row);
                 cancelBtn.onclick = cleanup;
                 setBtn.addEventListener('click', async () => {
                     const p1 = (newInp.value || '').trim(); const p2 = (confirmInp.value || '').trim();
-                    if (!p1 || p1.length < 4) { msg.style.display='block'; msg.style.color = '#ff8a8a'; msg.textContent = 'Password too short'; return; }
-                    if (p1 !== p2) { msg.style.display='block'; msg.style.color = '#ff8a8a'; msg.textContent = 'Passwords do not match'; return; }
+                    if (!p1 || p1.length < 4) { msg.style.display = 'block'; msg.style.color = '#ff8a8a'; msg.textContent = 'Password too short'; return; }
+                    if (p1 !== p2) { msg.style.display = 'block'; msg.style.color = '#ff8a8a'; msg.textContent = 'Passwords do not match'; return; }
                     const origText = setBtn.innerHTML;
                     try {
                         setBtn.disabled = true;
                         // spinner only
                         setBtn.innerHTML = '<svg class="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)" stroke-width="3"></circle><path d="M22 12a10 10 0 00-10-10" stroke="#fff" stroke-width="3" stroke-linecap="round"></path></svg>';
                         const resp = await fetch('/api/password-reset/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email, token: token, newPassword: p1 }) });
-                        if (!resp.ok) { const b = await resp.json().catch(()=>null); msg.style.display='block'; msg.style.color = '#ff8a8a'; msg.textContent = 'Failed: ' + (b && (b.error || JSON.stringify(b)) || resp.statusText); return; }
+                        if (!resp.ok) { const b = await resp.json().catch(() => null); msg.style.display = 'block'; msg.style.color = '#ff8a8a'; msg.textContent = 'Failed: ' + (b && (b.error || JSON.stringify(b)) || resp.statusText); return; }
                         // success: store credentials and proceed but show message first
-                        try { localStorage.setItem('bhashya_delivery_email', email); localStorage.setItem('bhashya_delivery_password', p1); } catch (e) {}
+                        try { localStorage.setItem('bhashya_delivery_email', email); localStorage.setItem('bhashya_delivery_password', p1); } catch (e) { }
                         obj.delivery_email = email; obj.delivery_password = p1; updateHeaderCredits(email, p1); updateLogoutUI();
-                        msg.style.display='block'; msg.style.color = '#9fb0be'; msg.textContent = 'Password set. You are now logged in.';
-                        setTimeout(() => { try { cleanup(); if (typeof onSuccess === 'function') setTimeout(onSuccess, 20); } catch(e){} }, 1200);
-                    } catch (e) { msg.style.display='block'; msg.style.color = '#ff8a8a'; msg.textContent='Error setting password'; }
-                    finally { try { setBtn.disabled = false; setBtn.innerHTML = origText; } catch(e){} }
+                        msg.style.display = 'block'; msg.style.color = '#9fb0be'; msg.textContent = 'Password set. You are now logged in.';
+                        setTimeout(() => { try { cleanup(); if (typeof onSuccess === 'function') setTimeout(onSuccess, 20); } catch (e) { } }, 1200);
+                    } catch (e) { msg.style.display = 'block'; msg.style.color = '#ff8a8a'; msg.textContent = 'Error setting password'; }
+                    finally { try { setBtn.disabled = false; setBtn.innerHTML = origText; } catch (e) { } }
                 });
             }
 
-            function cleanup() { try { overlay.remove(); document.removeEventListener('keydown', onEsc); } catch(e) {} }
+            function cleanup() { try { overlay.remove(); document.removeEventListener('keydown', onEsc); } catch (e) { } }
             function onEsc(e) { if (e && (e.key === 'Escape' || e.key === 'Esc' || e.keyCode === 27)) cleanup(); }
             document.addEventListener('keydown', onEsc);
 
@@ -376,7 +377,7 @@ function setupFormListeners() {
             if (!lb) return;
             const stored = (() => { try { return localStorage.getItem('bhashya_delivery_email'); } catch (e) { return null; } })();
             if (stored) { lb.classList.remove('hidden'); } else { lb.classList.add('hidden'); }
-            lb.onclick = () => { try { localStorage.removeItem('bhashya_delivery_email'); localStorage.removeItem('bhashya_delivery_password'); } catch (e) {} updateHeaderCredits(null); lb.classList.add('hidden'); };
+            lb.onclick = () => { try { localStorage.removeItem('bhashya_delivery_email'); localStorage.removeItem('bhashya_delivery_password'); } catch (e) { } updateHeaderCredits(null); lb.classList.add('hidden'); };
         } catch (e) { }
     }
     window.updateLogoutUI = updateLogoutUI;
@@ -393,7 +394,7 @@ function setupFormListeners() {
         const _resetToken = (_urlParams.get('token') || _urlParams.get('resetToken') || '').trim();
         if (_reset && _resetEmail && _resetToken) {
             // open confirm modal; clear URL params to avoid re-opening
-            try { history.replaceState({}, '', window.location.pathname || '/'); } catch (e) {}
+            try { history.replaceState({}, '', window.location.pathname || '/'); } catch (e) { }
             setTimeout(() => { showLoginModal(null, { mode: 'confirm', email: _resetEmail, token: _resetToken }); }, 80);
         }
     } catch (e) { }
@@ -421,7 +422,7 @@ function setupFormListeners() {
             emailInput.classList.remove('ring-2', 'ring-red-500', 'border-red-500');
             emailInput.setAttribute('aria-invalid', 'false');
             // update header credits when email changes
-            try { const pwd = (passwordInput && passwordInput.value) ? (passwordInput.value || '').trim() : (obj.delivery_password || ''); updateHeaderCredits(obj.delivery_email, pwd); } catch (e) {}
+            try { const pwd = (passwordInput && passwordInput.value) ? (passwordInput.value || '').trim() : (obj.delivery_password || ''); updateHeaderCredits(obj.delivery_email, pwd); } catch (e) { }
         });
     }
 
@@ -429,16 +430,16 @@ function setupFormListeners() {
     if (passwordInput) {
         try {
             const storedPwd = (() => { try { return localStorage.getItem('bhashya_delivery_password'); } catch (e) { return null; } })();
-            if (storedPwd && !passwordInput.value) { try { passwordInput.value = storedPwd; } catch (e) {} obj.delivery_password = storedPwd; }
+            if (storedPwd && !passwordInput.value) { try { passwordInput.value = storedPwd; } catch (e) { } obj.delivery_password = storedPwd; }
         } catch (e) { }
         passwordInput.addEventListener('input', () => {
             obj.delivery_password = (passwordInput.value || '').trim();
             try { if (obj.delivery_password) localStorage.setItem('bhashya_delivery_password', obj.delivery_password); else localStorage.removeItem('bhashya_delivery_password'); } catch (e) { }
             // update header credits when password changes
-            try { const emailVal = obj.delivery_email || (emailInput ? (emailInput.value || '').trim() : ''); updateHeaderCredits(emailVal, obj.delivery_password); } catch (e) {}
+            try { const emailVal = obj.delivery_email || (emailInput ? (emailInput.value || '').trim() : ''); updateHeaderCredits(emailVal, obj.delivery_password); } catch (e) { }
         });
         // initial update of header credits on load if email present
-        try { const initialEmail = obj.delivery_email || (emailInput ? (emailInput.value || '').trim() : ''); if (initialEmail) setTimeout(() => updateHeaderCredits(initialEmail, obj.delivery_password), 50); } catch (e) {}
+        try { const initialEmail = obj.delivery_email || (emailInput ? (emailInput.value || '').trim() : ''); if (initialEmail) setTimeout(() => updateHeaderCredits(initialEmail, obj.delivery_password), 50); } catch (e) { }
 
         // Reset password button handler
         try {
@@ -458,13 +459,13 @@ function setupFormListeners() {
                         resetBtn.disabled = true;
                         const resp = await fetch('/api/password-reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: emailVal }) });
                         if (resp.ok) { alert('Password reset link sent to ' + emailVal); } else {
-                            const body = await resp.json().catch(()=>null);
+                            const body = await resp.json().catch(() => null);
                             alert('Failed to send reset link: ' + (body && (body.error || JSON.stringify(body)) || resp.statusText));
                         }
-                    } catch (e) { alert('Error sending reset request: ' + (e && e.message || e)); } finally { try { resetBtn.disabled = false; } catch (e) {} }
+                    } catch (e) { alert('Error sending reset request: ' + (e && e.message || e)); } finally { try { resetBtn.disabled = false; } catch (e) { } }
                 });
             }
-        } catch (e) {}
+        } catch (e) { }
 
         // preload avatars into cache and apply selected avatar if present
         (async function preloadAvatars() {
@@ -485,9 +486,9 @@ function setupFormListeners() {
                     // default avatar if none selected
                     const defaultId = '698c713672309b00074febb6';
                     const foundDefault = arr.find(a => String(a.id) === String(defaultId));
-                    if (foundDefault) { obj.avatarId = foundDefault.id; updateSelectedAvatarUI(foundDefault); try { localStorage.setItem('bhashya_selected_avatar', foundDefault.id); } catch(e){} }
+                    if (foundDefault) { obj.avatarId = foundDefault.id; updateSelectedAvatarUI(foundDefault); try { localStorage.setItem('bhashya_selected_avatar', foundDefault.id); } catch (e) { } }
                 }
-            } catch (e) {}
+            } catch (e) { }
         })();
     }
 
@@ -562,7 +563,7 @@ function setupFormListeners() {
 
             if (!emailVal || !emailRegex.test(emailVal) || !pwdVal) {
                 // show login modal to collect credentials and then retry
-                showLoginModal(() => { try { genBtn.click(); } catch (e) {} });
+                showLoginModal(() => { try { genBtn.click(); } catch (e) { } });
                 return;
             }
 
@@ -712,9 +713,9 @@ function setupFormListeners() {
                     const pack = packList.find(p => (p.id || p._id || p.name || p.packId || p.pack) === pid);
                     // Ensure email/password from input or localStorage
                     let emailToSend = (emailVal || (obj && obj.delivery_email) || '');
-                    try { if (!emailToSend) emailToSend = localStorage.getItem('bhashya_delivery_email') || emailToSend; } catch(e){}
+                    try { if (!emailToSend) emailToSend = localStorage.getItem('bhashya_delivery_email') || emailToSend; } catch (e) { }
                     let pwdVal = (passwordInput ? (passwordInput.value || '').trim() : (obj.delivery_password || ''));
-                    try { if (!pwdVal) pwdVal = localStorage.getItem('bhashya_delivery_password') || pwdVal; } catch(e){}
+                    try { if (!pwdVal) pwdVal = localStorage.getItem('bhashya_delivery_password') || pwdVal; } catch (e) { }
 
                     const body = { email: emailToSend || '', name: '', packId: pid, credits: pack && (pack.credits || pack.amount) || null, stateObj, password: pwdVal || '' };
                     const resp = await fetch('/api/create-payment-link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -726,7 +727,7 @@ function setupFormListeners() {
                     alert('Payment link not returned');
                 } catch (e) { alert('Error creating payment link: ' + (e && e.message || e)); }
                 finally {
-                    try { if (btn) { btn.disabled = false; if (originalBtnHtml !== null) btn.innerHTML = originalBtnHtml; } } catch(e){}
+                    try { if (btn) { btn.disabled = false; if (originalBtnHtml !== null) btn.innerHTML = originalBtnHtml; } } catch (e) { }
                 }
             }
 
@@ -804,7 +805,7 @@ function setupFormListeners() {
             const title = document.createElement('div'); title.innerText = 'Choose Avatar'; title.style = 'font-weight:700;font-size:18px;color:#e6eef5;';
             const closeBtn = document.createElement('button'); closeBtn.innerText = 'Close'; closeBtn.style = 'background:transparent;border:none;color:#94a3b8;font-weight:600;cursor:pointer;padding:6px 8px;border-radius:6px;';
 
-            function removeOverlay() { try { document.removeEventListener('keydown', onKeydown); } catch(e){} try { window.__recentlyClosedAvatarModal = Date.now(); } catch(e){} try { overlay.remove(); } catch(e){} }
+            function removeOverlay() { try { document.removeEventListener('keydown', onKeydown); } catch (e) { } try { window.__recentlyClosedAvatarModal = Date.now(); } catch (e) { } try { overlay.remove(); } catch (e) { } }
             function onKeydown(e) { if (e && (e.key === 'Escape' || e.key === 'Esc' || e.keyCode === 27)) { removeOverlay(); } }
             document.addEventListener('keydown', onKeydown);
 
@@ -813,10 +814,10 @@ function setupFormListeners() {
 
             const grid = document.createElement('div'); grid.style = 'display:grid;grid-template-columns:repeat(auto-fit, minmax(180px,1fr));gap:12px;margin-bottom:12px;';
             const list = Array.isArray(avatars) ? avatars.slice() : [];
-            if (!list.length) { const p = document.createElement('div'); p.style='color:#cbd5e1'; p.textContent='No avatars available.'; box.appendChild(p); overlay.appendChild(box); document.body.appendChild(overlay); return; }
+            if (!list.length) { const p = document.createElement('div'); p.style = 'color:#cbd5e1'; p.textContent = 'No avatars available.'; box.appendChild(p); overlay.appendChild(box); document.body.appendChild(overlay); return; }
             list.forEach(a => {
                 const id = a.id || a._id || '';
-                const card = document.createElement('div'); card.style='background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03);padding:10px;border-radius:8px;display:flex;flex-direction:column;gap:8px;position:relative;';
+                const card = document.createElement('div'); card.style = 'background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03);padding:10px;border-radius:8px;display:flex;flex-direction:column;gap:8px;position:relative;';
 
                 // image container with 9:16 aspect ratio
                 const imgWrap = document.createElement('div');
@@ -836,10 +837,10 @@ function setupFormListeners() {
                 chooseBtn.type = 'button';
                 chooseBtn.innerText = 'Choose';
                 chooseBtn.style = 'position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:10;background:rgba(250,250,245,0.95);color:#071116;border:none;padding:8px 14px;border-radius:999px;cursor:pointer;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,0.5);';
-                chooseBtn.addEventListener('click', (ev) => { ev.preventDefault(); ev.stopPropagation(); try { obj.avatarId = id; try { localStorage.setItem('bhashya_selected_avatar', id); } catch (e) {} if (typeof updateSelectedAvatarUI === 'function') updateSelectedAvatarUI(a); window.__recentlyClosedAvatarModal = Date.now(); removeOverlay(); } catch (e) { console.warn(e); }});
+                chooseBtn.addEventListener('click', (ev) => { ev.preventDefault(); ev.stopPropagation(); try { obj.avatarId = id; try { localStorage.setItem('bhashya_selected_avatar', id); } catch (e) { } if (typeof updateSelectedAvatarUI === 'function') updateSelectedAvatarUI(a); window.__recentlyClosedAvatarModal = Date.now(); removeOverlay(); } catch (e) { console.warn(e); } });
                 imgWrap.appendChild(chooseBtn);
 
-                const name = document.createElement('div'); name.style='font-weight:700;color:#e6eef5;padding-top:8px;'; name.textContent = a.name || id;
+                const name = document.createElement('div'); name.style = 'font-weight:700;color:#e6eef5;padding-top:8px;'; name.textContent = a.name || id;
 
                 card.appendChild(imgWrap); card.appendChild(name);
                 grid.appendChild(card);
@@ -858,7 +859,7 @@ function setupFormListeners() {
                     thumb = document.createElement('img');
                     thumb.id = 'video-type-avatar-thumb';
                     thumb.style = 'width:72px;height:72px;object-fit:cover;border-radius:8px;margin-bottom:6px;display:block;';
-                    try { avatarBtn.insertBefore(thumb, avatarBtn.firstChild); } catch (e) { try { avatarBtn.appendChild(thumb); } catch (e2) {} }
+                    try { avatarBtn.insertBefore(thumb, avatarBtn.firstChild); } catch (e) { try { avatarBtn.appendChild(thumb); } catch (e2) { } }
                 }
                 if (avatar && (avatar.cover_path || avatar.path || avatar.cover)) {
                     thumb.src = avatar.cover_path || avatar.path || avatar.cover;
@@ -947,7 +948,7 @@ function setupFormListeners() {
             document.body.appendChild(overlay);
 
             const logoutBtn = document.getElementById('account-logout');
-            if (logoutBtn) logoutBtn.addEventListener('click', () => { try { localStorage.removeItem('bhashya_delivery_email'); localStorage.removeItem('bhashya_delivery_password'); } catch (e) {}; overlay.remove(); try { const cc = document.getElementById('credits-count'); if (cc) cc.textContent = 'Credits: —'; } catch (e) {} });
+            if (logoutBtn) logoutBtn.addEventListener('click', () => { try { localStorage.removeItem('bhashya_delivery_email'); localStorage.removeItem('bhashya_delivery_password'); } catch (e) { }; overlay.remove(); try { const cc = document.getElementById('credits-count'); if (cc) cc.textContent = 'Credits: —'; } catch (e) { } });
 
         } catch (e) { console.warn('showAccountModal error', e); }
     }
@@ -1388,8 +1389,8 @@ if (typeof window !== 'undefined') {
             const storedEmail = (() => { try { return localStorage.getItem('bhashya_delivery_email'); } catch (e) { return null; } })();
             const storedPwd = (() => { try { return localStorage.getItem('bhashya_delivery_password'); } catch (e) { return null; } })();
             if (storedEmail && storedPwd && typeof updateHeaderCredits === 'function') {
-                try { updateHeaderCredits(storedEmail, storedPwd); } catch (e) {}
-                try { if (typeof updateLogoutUI === 'function') updateLogoutUI(); } catch (e) {}
+                try { updateHeaderCredits(storedEmail, storedPwd); } catch (e) { }
+                try { if (typeof updateLogoutUI === 'function') updateLogoutUI(); } catch (e) { }
             }
         } catch (e) { /* ignore */ }
     });
@@ -1429,15 +1430,95 @@ if (typeof window !== 'undefined') {
 
         const db = getFirestore(app);
         const docRef = doc(db, 'generations', id);
+        let unsubscribe = null;
+        let hasCheckedGuaranteedStatus = false;
+
+        function isCompletedGenerationStatus(status) {
+            const normalized = String(status || '').toUpperCase();
+            return normalized === 'SUCCESS' || normalized === 'PARTIAL_SUCCESS';
+        }
+
+        function normalizeGenerationData(source) {
+            const normalized = (source && typeof source === 'object') ? { ...source } : source;
+            if (!normalized || typeof normalized !== 'object') return normalized;
+            ['output', 'result'].forEach((key) => {
+                const rawValue = normalized[key];
+                if (typeof rawValue !== 'string') return;
+                const trimmed = rawValue.trim();
+                if (!trimmed) return;
+                const looksLikeJson = (
+                    (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+                    (trimmed.startsWith('[') && trimmed.endsWith(']'))
+                );
+                if (!looksLikeJson) return;
+                try { normalized[key] = JSON.parse(trimmed); } catch (e) { /* ignore invalid JSON-like strings */ }
+            });
+            return normalized;
+        }
+
+        function unsubscribeSnapshot() {
+            if (typeof unsubscribe !== 'function') return;
+            const cleanup = unsubscribe;
+            unsubscribe = null;
+            try { cleanup(); console.log('Unsubscribed generation snapshot for', id); } catch (e) { /* ignore */ }
+            try {
+                if (window.__generationSnapshotUnsubscribe === unsubscribeSnapshot) window.__generationSnapshotUnsubscribe = null;
+            } catch (e) { /* ignore */ }
+        }
+
+        async function fetchGuaranteedGenerationStatus() {
+            try {
+                const resp = await fetch(`/api/generate/${encodeURIComponent(id)}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (!resp.ok) {
+                    const bodyText = await resp.text().catch(() => resp.statusText || '');
+                    console.warn('Guaranteed generation status request failed', id, resp.status, bodyText);
+                    return null;
+                }
+                const bodyText = await resp.text();
+                let parsed = null;
+                try { parsed = JSON.parse(bodyText); } catch (e) { parsed = null; }
+                if (!parsed || typeof parsed !== 'object') {
+                    console.warn('Guaranteed generation status was not valid JSON', id);
+                    return null;
+                }
+                return normalizeGenerationData(parsed);
+            } catch (e) {
+                console.warn('Guaranteed generation status fetch failed', id, e);
+                return null;
+            }
+        }
+
+        function maybeReconcileGuaranteedStatus(snapshotData) {
+            if (hasCheckedGuaranteedStatus) return;
+            hasCheckedGuaranteedStatus = true;
+            if (isCompletedGenerationStatus(snapshotData && snapshotData.status)) return;
+            Promise.resolve().then(async () => {
+                const guaranteedData = await fetchGuaranteedGenerationStatus();
+                if (!guaranteedData || !isCompletedGenerationStatus(guaranteedData.status)) return;
+                console.log('Using guaranteed completed generation status from proxy for', id);
+                handleSnapshot({
+                    id,
+                    exists: () => true,
+                    data: () => guaranteedData
+                });
+                unsubscribeSnapshot();
+            }).catch((err) => {
+                console.warn('Guaranteed generation status reconciliation failed', id, err);
+            });
+        }
 
         // attach snapshot listener and log updates (extend to update UI as needed)
-        const unsubscribe = onSnapshot(docRef, (snapshot) => {
+        function handleSnapshot(snapshot) {
             if (!snapshot.exists()) {
                 console.warn('Generation document removed:', id);
+                maybeReconcileGuaranteedStatus(null);
                 return;
             }
-            const data = snapshot.data();
-            console.log('Generation snapshot', snapshot.id, data);
+            const data = normalizeGenerationData(snapshot.data());
+            console.log('Generation snapshot', snapshot.id || id, data);
 
             // Example: update a status element if present
             try {
@@ -1468,13 +1549,13 @@ if (typeof window !== 'undefined') {
                     const currentStepSpan = document.querySelector('[data-generation-current-step]');
                     const currentStepWrapper = currentStepSpan ? currentStepSpan.closest('div') : null;
                     const statusRawLocal = (data && data.status) ? String(data.status).toUpperCase() : '';
-                    if (statusRawLocal === 'SUCCESS' || statusRawLocal === 'PARTIAL_SUCCESS') {
-                        if (pageTitle) pageTitle.textContent = 'Video Generated';
-                        if (currentStepWrapper) currentStepWrapper.style.display = 'none';
-                        try { if (typeof unsubscribe === 'function') { unsubscribe(); console.log('Unsubscribed generation snapshot for', id); } } catch (e) { }
-                    } else {
-                        if (pageTitle) pageTitle.textContent = 'Generating Your Reel';
-                        if (currentStepWrapper) currentStepWrapper.style.display = '';
+                        if (statusRawLocal === 'SUCCESS' || statusRawLocal === 'PARTIAL_SUCCESS') {
+                            if (pageTitle) pageTitle.textContent = 'Video Generated';
+                            if (currentStepWrapper) currentStepWrapper.style.display = 'none';
+                            unsubscribeSnapshot();
+                        } else {
+                            if (pageTitle) pageTitle.textContent = 'Generating Your Reel';
+                            if (currentStepWrapper) currentStepWrapper.style.display = '';
                     }
                 } catch (e) { /* ignore title/step update errors */ }
 
@@ -1641,7 +1722,7 @@ if (typeof window !== 'undefined') {
                             if (isFailed) {
                                 try { if (percentEl) { percentEl.textContent = 'Failed'; percentEl.classList.add('text-red-400'); } } catch (e) { }
                                 try { if (barEl) { barEl.style.width = (typeof pct !== 'undefined' && pct !== null) ? (pct + '%') : '100%'; barEl.style.background = '#ef4444'; barEl.style.boxShadow = '0 0 20px rgba(239,68,68,0.4)'; } } catch (e) { }
-                                if (stoppedEl) { try { stoppedEl.classList.remove('hidden'); const titleEl = stoppedEl.querySelector('.font-bold'); const subEl = stoppedEl.querySelector('div.text-xs'); if (titleEl) titleEl.textContent = 'Generation failed'; if (subEl) subEl.textContent = 'An error occurred during generation.'; } catch (e) { } }
+                                if (stoppedEl) { try { stoppedEl.classList.remove('hidden'); const titleEl = stoppedEl.querySelector('.font-bold'); const subEl = stoppedEl.querySelector('div.text-xs'); if (titleEl) titleEl.textContent = 'Generation failed'; if (subEl) subEl.textContent = 'An error occurred during generation. Any deducted credits will be automatically refunded to your account.'; } catch (e) { } }
                                 try { const dot = document.querySelector('[data-generation-exec-dot]'); if (dot) dot.classList.add('hidden'); } catch (e) { }
 
                                 // When generation fails the backend should have refunded any held credits.
@@ -2076,12 +2157,16 @@ if (typeof window !== 'undefined') {
                     }
                 } catch (e) { console.error('Pipeline render error', e); }
             } catch (e) { /* silent */ }
-        }, (err) => {
+
+            maybeReconcileGuaranteedStatus(data);
+        }
+
+        unsubscribe = onSnapshot(docRef, handleSnapshot, (err) => {
             console.error('Snapshot listener error for', id, err);
         });
 
         // expose for debugging/unsubscribe later
-        window.__generationSnapshotUnsubscribe = unsubscribe;
+        window.__generationSnapshotUnsubscribe = unsubscribeSnapshot;
     } catch (e) {
         console.error('Failed to initialize generation snapshot listener', e);
     }
@@ -2102,6 +2187,8 @@ const stepDescriptions = {
     "generate-image-prompts-hindu": "Building image prompts",
     "generate-image-prompts-rel": "Building image prompts",
     "generate-image-prompts-default": "Building image prompts",
+    "generate-bubble-prompts-default": "Building image prompts for overlays",
+    "generate-bubble-images": "Generating overlay images",
     "generate-images-pollinations": "Generating visual assets using Pollinations",
     "generate-images": "Generating visual assets using Pollinations",
     "prep-animation": "Preparing animation parameters and keyframes",
@@ -2273,9 +2360,9 @@ window.applyReturnState = function () {
         if (status === 'TXN_SUCCESS') {
             const genBtn = document.getElementById('generate-btn');
             if (genBtn) setTimeout(() => {
-                try { genBtn.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
-                try { genBtn.focus(); } catch (e) {}
-                try { genBtn.click(); } catch (e) {}
+                try { genBtn.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { }
+                try { genBtn.focus(); } catch (e) { }
+                try { genBtn.click(); } catch (e) { }
             }, 300);
         }
     } catch (e) { console.warn('applyReturnState error', e); }
@@ -2301,32 +2388,32 @@ window.handleResetFromQuery = function () {
                 try { emailInput.value = decodeURIComponent(email); } catch (e) { emailInput.value = email; }
                 emailInput.dispatchEvent(new Event('input', { bubbles: true }));
             }
-        } catch (e) {}
+        } catch (e) { }
 
         // Store reset token for later use (confirm endpoint)
-        try { window.__resetToken = token; localStorage.setItem('bhashya_reset_token', token); } catch (e) {}
+        try { window.__resetToken = token; localStorage.setItem('bhashya_reset_token', token); } catch (e) { }
 
         // Change the password label to indicate this is a new password
         try {
             const labels = Array.from(document.querySelectorAll('label'));
             const pwdLabel = labels.find(l => /account password/i.test((l.textContent || '')));
             if (pwdLabel) pwdLabel.textContent = 'New Account password *';
-        } catch (e) {}
+        } catch (e) { }
 
         // Focus and highlight the password input so user can enter the new password
         try {
             const pwdInput = document.querySelector('[data-delivery-password]');
             if (pwdInput) {
-                try { pwdInput.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
-                try { pwdInput.focus({ preventScroll: false }); } catch (e) { try { pwdInput.focus(); } catch (e2) {} }
+                try { pwdInput.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { }
+                try { pwdInput.focus({ preventScroll: false }); } catch (e) { try { pwdInput.focus(); } catch (e2) { } }
                 const prevBox = pwdInput.style.boxShadow || '';
-                try { pwdInput.style.boxShadow = '0 0 0 6px rgba(250,204,21,0.25)'; } catch (e) {}
+                try { pwdInput.style.boxShadow = '0 0 0 6px rgba(250,204,21,0.25)'; } catch (e) { }
                 // keep highlight for 60s then restore
-                setTimeout(() => { try { pwdInput.style.boxShadow = prevBox; } catch (e) {} }, 60000);
+                setTimeout(() => { try { pwdInput.style.boxShadow = prevBox; } catch (e) { } }, 60000);
             }
-        } catch (e) {}
+        } catch (e) { }
 
         // Remove reset params from URL so user can refresh without re-triggering
-        try { const url = new URL(window.location.href); url.searchParams.delete('reset'); url.searchParams.delete('email'); url.searchParams.delete('token'); window.history.replaceState({}, document.title, url.toString()); } catch (e) {}
+        try { const url = new URL(window.location.href); url.searchParams.delete('reset'); url.searchParams.delete('email'); url.searchParams.delete('token'); window.history.replaceState({}, document.title, url.toString()); } catch (e) { }
     } catch (e) { console.warn('handleResetFromQuery error', e); }
 };
