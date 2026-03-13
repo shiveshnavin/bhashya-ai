@@ -2161,9 +2161,28 @@ if (typeof window !== 'undefined') {
             maybeReconcileGuaranteedStatus(data);
         }
 
-        unsubscribe = onSnapshot(docRef, handleSnapshot, (err) => {
-            console.error('Snapshot listener error for', id, err);
-        });
+        (async function initFromProxyOrSnapshot(){
+            try {
+                const guaranteedData = await fetchGuaranteedGenerationStatus();
+                if (guaranteedData && typeof guaranteedData === 'object'){
+                    hasCheckedGuaranteedStatus = true;
+                    console.log('Initial guaranteed generation status from proxy for', id);
+                    // Apply proxy-provided state immediately
+                    handleSnapshot({ id, exists: () => true, data: () => guaranteedData });
+                    const statusNorm = String(guaranteedData.status || '').toUpperCase();
+                    if (statusNorm === 'IN_PROGRESS'){
+                        // subscribe to live updates while generation is running
+                        unsubscribe = onSnapshot(docRef, handleSnapshot, (err) => { console.error('Snapshot listener error for', id, err); });
+                    }
+                } else {
+                    // No proxy response: fall back to Firestore realtime updates
+                    unsubscribe = onSnapshot(docRef, handleSnapshot, (err) => { console.error('Snapshot listener error for', id, err); });
+                }
+            } catch (err) {
+                console.warn('Failed to initialize from proxy, falling back to Firestore snapshot for', id, err);
+                try { unsubscribe = onSnapshot(docRef, handleSnapshot, (err2) => { console.error('Snapshot listener error for', id, err2); }); } catch (e) { /* ignore */ }
+            }
+        })();
 
         // expose for debugging/unsubscribe later
         window.__generationSnapshotUnsubscribe = unsubscribeSnapshot;
