@@ -698,7 +698,7 @@ function setupFormListeners() {
             }
 
             // order packs by amount (INR) ascending: 10 -> 500
-            try { packList.sort((a,b)=> (Number(a.amount||a.price||a.credits||0) - Number(b.amount||b.price||b.credits||0))); } catch (e) { /* ignore sort errors */ }
+            try { packList.sort((a, b) => (Number(a.amount || a.price || a.credits || 0) - Number(b.amount || b.price || b.credits || 0))); } catch (e) { /* ignore sort errors */ }
 
             const cardEls = {};
             let selectedPackId = null;
@@ -793,7 +793,7 @@ function setupFormListeners() {
                     viewBtn.style.border = 'none';
                     viewBtn.style.padding = '0';
                     viewBtn.style.cursor = 'pointer';
-                    viewBtn.innerText = 'View benefits';
+                    viewBtn.innerHTML = '<svg class="h-3 w-3 text-teal-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>View benefits';
                     viewBtn.setAttribute('aria-expanded', 'false');
                     // benefits container (collapsed by default)
                     const benefitsDiv = document.createElement('div');
@@ -814,7 +814,7 @@ function setupFormListeners() {
                         if (open) {
                             benefitsDiv.style.maxHeight = '0px';
                             viewBtn.setAttribute('aria-expanded', 'false');
-                            viewBtn.innerText = 'View benefits';
+                            viewBtn.innerHTML = '<svg class="h-3 w-3 text-teal-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>View benefits';
                         } else {
                             // set to scrollHeight for smooth expand
                             try { benefitsDiv.style.maxHeight = benefitsDiv.scrollHeight + 'px'; } catch (e) { benefitsDiv.style.maxHeight = '400px'; }
@@ -826,13 +826,6 @@ function setupFormListeners() {
                     outerDiv.appendChild(viewBtn);
                     outerDiv.appendChild(benefitsDiv);
 
-                    // small features list (kept for visual parity) - hidden on mobile to save height
-                    if (!isMobile) {
-                        const featuresUl = document.createElement('ul');
-                        featuresUl.className = 'mt-4 space-y-2 text-xs text-slate-400';
-                        featuresUl.innerHTML = '<li class="flex items-center"><svg class="h-3 w-3 text-teal-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>' + (p.label ? 'Features' : '') + '</li>';
-                        outerDiv.appendChild(featuresUl);
-                    }
 
                     inner.appendChild(outerDiv);
                 } catch (e) {
@@ -1630,13 +1623,13 @@ if (typeof window !== 'undefined') {
                     const currentStepSpan = document.querySelector('[data-generation-current-step]');
                     const currentStepWrapper = currentStepSpan ? currentStepSpan.closest('div') : null;
                     const statusRawLocal = (data && data.status) ? String(data.status).toUpperCase() : '';
-                        if (statusRawLocal === 'SUCCESS' || statusRawLocal === 'PARTIAL_SUCCESS') {
-                            if (pageTitle) pageTitle.textContent = 'Video Generated';
-                            if (currentStepWrapper) currentStepWrapper.style.display = 'none';
-                            unsubscribeSnapshot();
-                        } else {
-                            if (pageTitle) pageTitle.textContent = 'Generating Your Reel';
-                            if (currentStepWrapper) currentStepWrapper.style.display = '';
+                    if (statusRawLocal === 'SUCCESS' || statusRawLocal === 'PARTIAL_SUCCESS') {
+                        if (pageTitle) pageTitle.textContent = 'Video Generated';
+                        if (currentStepWrapper) currentStepWrapper.style.display = 'none';
+                        unsubscribeSnapshot();
+                    } else {
+                        if (pageTitle) pageTitle.textContent = 'Generating Your Reel';
+                        if (currentStepWrapper) currentStepWrapper.style.display = '';
                     }
                 } catch (e) { /* ignore title/step update errors */ }
 
@@ -2242,16 +2235,16 @@ if (typeof window !== 'undefined') {
             maybeReconcileGuaranteedStatus(data);
         }
 
-        (async function initFromProxyOrSnapshot(){
+        (async function initFromProxyOrSnapshot() {
             try {
                 const guaranteedData = await fetchGuaranteedGenerationStatus();
-                if (guaranteedData && typeof guaranteedData === 'object'){
+                if (guaranteedData && typeof guaranteedData === 'object') {
                     hasCheckedGuaranteedStatus = true;
                     console.log('Initial guaranteed generation status from proxy for', id);
                     // Apply proxy-provided state immediately
                     handleSnapshot({ id, exists: () => true, data: () => guaranteedData });
                     const statusNorm = String(guaranteedData.status || '').toUpperCase();
-                    if (statusNorm === 'IN_PROGRESS'){
+                    if (statusNorm === 'IN_PROGRESS') {
                         // subscribe to live updates while generation is running
                         unsubscribe = onSnapshot(docRef, handleSnapshot, (err) => { console.error('Snapshot listener error for', id, err); });
                     }

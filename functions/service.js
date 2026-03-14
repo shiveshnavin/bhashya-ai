@@ -389,6 +389,7 @@ class Service {
         } else {
             await this.db.insert(TABLE_CREDITS, newDoc, email);
         }
+        console.log(`Added ${credits} credits to ${email}. Total credits: ${newCredits}`);
         return { applied: true, credits: newCredits };
     }
 

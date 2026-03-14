@@ -43,16 +43,21 @@ app.post('/api/webhook/generation', async (req, res) => {
 
 app.post('/api/webhook/add-credits/:secret', async (req, res) => {
     try {
+        console.log('Received add-credits webhook with body', req.body);
         const secret = req.params.secret;
         if (service.payserviceWebhookSecret && String(secret) !== String(service.payserviceWebhookSecret)) {
             return res.status(403).json({ error: 'Invalid webhook secret' });
         }
         const paymentObj = req.body || {};
         const email = paymentObj.email || (paymentObj.extra && paymentObj.extra.email) || null;
-        let credits = Number(paymentObj.credits || paymentObj.credits_added || paymentObj.amount || 0);
+        let credits = await service.deduceCreditsFromPayment(paymentObj);
+        if (paymentObj.status != 'TXN_SUCCESS') {
+            console.warn('Payment not successful, skipping credit addition', paymentObj);
+            return res.status(200).json({ error: 'Payment not successful so not adding credits' });
+        }
         if (!credits || credits <= 0) credits = Number(paymentObj.amount || 0) || 0;
         if (!email) return res.status(400).json({ error: 'email required' });
-        await service.addCredits(email, credits, paymentObj);
+        if (credits > 0) await service.addCredits(email, credits, paymentObj);
         res.json({ ok: true });
     } catch (err) {
         console.error('webhook/add-credits error', err && err.message || err);
@@ -181,12 +186,15 @@ app.post('/api/generate', async (req, res, next) => {
         if (orderId && String(payStatus).toUpperCase().includes('TXN_SUCCESS')) {
             try {
                 const payment = await service.getPaymentStatus(orderId);
-                if (payment) {
+                if (payment && payment.status == 'TXN_SUCCESS') {
                     console.log('Fetched payment for orderId', orderId, payment);
                     const creditsToAdd = await service.deduceCreditsFromPayment(payment);
                     if (creditsToAdd && creditsToAdd > 0) {
                         try { await service.addCredits(email, creditsToAdd, payment); } catch (e) { console.warn('addCredits during generate pre-check failed', e); }
                     }
+                }
+                else {
+                    console.warn('Payment not successful for orderId', orderId, payment);
                 }
             } catch (e) {
                 console.warn('payment pre-check failed', e);
