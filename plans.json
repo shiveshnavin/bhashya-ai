@@ -1,0 +1,52 @@
+{
+  "credits_1": {
+    "id": "credits_1",
+    "label": "1 Credit",
+    "amount": 10,
+    "credits": 1,
+    "currency": "INR",
+    "benefits": "<div style=\"font-size:13.5px;\"> <div style=\"margin-bottom:8px;\"> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • Low AI • 360p</span> </div> <div style=\"margin-bottom:8px;\"> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • High AI • HD</span> </div> <div> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">2 Min • High AI • HD</span> </div> </div>",
+    "discount_percentage": 0.00,
+    "default_selected": false
+  },
+  "credits_6": {
+    "id": "credits_6",
+    "label": "6 Credits",
+    "amount": 50,
+    "credits": 6,
+    "currency": "INR",
+    "benefits": "<div style=\"font-size:13.5px;\"> <div style=\"margin-bottom:8px;\"> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • Low AI • 360p</span> </div> <div style=\"margin-bottom:8px;\"> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • High AI • HD</span> </div> <div> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">2 Min • High AI • HD</span> </div> </div>",
+    "discount_percentage": 16.67,
+    "default_selected": false
+  },
+  "credits_13": {
+    "id": "credits_13",
+    "label": "13 Credits",
+    "amount": 100,
+    "credits": 13,
+    "currency": "INR",
+    "benefits": "<div style=\"font-size:13.5px;\"> <div style=\"margin-bottom:8px;\"> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • Low AI • 360p</span> </div> <div style=\"margin-bottom:8px;\"> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • High AI • HD</span> </div> <div> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">2 Min • High AI • HD</span> </div> </div>",
+    "discount_percentage": 23.08,
+    "default_selected": false
+  },
+  "credits_29": {
+    "id": "credits_29",
+    "label": "29 Credits",
+    "amount": 200,
+    "credits": 29,
+    "currency": "INR",
+    "benefits": "<div style=\"font-size:13.5px;\"> <div style=\"margin-bottom:8px;\"> <strong>~1 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • Low AI • 360p</span> </div> <div style=\"margin-bottom:8px;\"> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • High AI • HD</span> </div> <div> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">2 Min • High AI • HD</span> </div> </div>",
+    "discount_percentage": 31.03,
+    "default_selected": false
+  },
+  "credits_100": {
+    "id": "credits_100",
+    "label": "100 Credits",
+    "amount": 500,
+    "credits": 100,
+    "currency": "INR",
+    "benefits": "<div style=\"font-size:13.5px;\"> <div style=\"margin-bottom:8px;\"> <strong>~6 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • Low AI • 360p</span> </div> <div style=\"margin-bottom:8px;\"> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • High AI • HD</span> </div> <div> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">2 Min • High AI • HD</span> </div> </div>",
+    "discount_percentage": 50.00,
+    "default_selected": true
+  }
+}

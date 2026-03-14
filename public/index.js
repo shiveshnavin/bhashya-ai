@@ -648,46 +648,60 @@ function setupFormListeners() {
             hidePurchaseModal();
             const emailEl = document.querySelector('[data-delivery-email]');
             const emailVal = emailEl ? (emailEl.value || '').trim() : '';
+
             const overlay = document.createElement('div');
             overlay.id = 'purchase-modal';
             overlay.style = 'position:fixed;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);z-index:9999;padding:20px;backdrop-filter:blur(6px);';
+
+            // build inner modal using Tailwind-like classes for easier styling
             const box = document.createElement('div');
-            box.style = 'background:#0b1220;color:#e6eef5;border-radius:12px;padding:20px;max-width:900px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.03);';
+            box.id = 'purchase-modal-box';
+            // make box a vertical flex container and constrain height so inner area can scroll
+            box.className = 'bg-[#0f172a] border border-slate-800 rounded-2xl w-full max-w-5xl shadow-2xl flex flex-col';
+            box.style.maxHeight = '90vh';
+            box.style.overflow = 'hidden';
 
-            const header = document.createElement('div');
-            header.style = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;';
-            const title = document.createElement('div');
-            title.innerText = 'Buy Credits to Continue';
-            title.style = 'font-weight:700;font-size:18px;color:#e6eef5;';
-            const closeBtn = document.createElement('button');
-            closeBtn.innerText = 'Close';
-            closeBtn.style = 'background:transparent;border:none;color:#94a3b8;font-weight:600;cursor:pointer;padding:6px 8px;border-radius:6px;';
-            closeBtn.onclick = hidePurchaseModal;
-            header.appendChild(title);
-            header.appendChild(closeBtn);
-            box.appendChild(header);
+            box.innerHTML = `
+                <div class="px-8 py-6 border-b border-slate-800 flex justify-between items-center" style="flex:0 0 auto;">
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Buy Credits to Continue</h2>
+                        <p class="text-slate-400 text-sm mt-1">Required: <span class="text-white font-semibold">${requiredCredits || 0} credits</span>. You currently have: <span class="text-teal-400 font-semibold">${availableCredits || 0} credits</span>.</p>
+                    </div>
+                    <button aria-label="Close" id="purchase-modal-close" class="text-slate-400 hover:text-white transition-colors">✕</button>
+                </div>
+                <div id="purchase-pack-body" style="flex:1 1 auto;overflow:auto;padding:32px;">
+                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4" id="purchase-pack-grid"></div>
+                </div>
+                <div class="px-8 py-5 bg-slate-900/30 border-t border-slate-800 flex justify-end gap-3" style="flex:0 0 auto;">
+                    <button id="purchase-cancel-btn" class="px-5 py-2 text-sm font-medium text-slate-400 hover:text-white transition-colors">Cancel</button>
+                </div>
+            `;
 
-            const info = document.createElement('div');
-            info.style = 'margin-bottom:12px;color:#cbd5e1;';
-            info.innerText = 'Required: ' + (requiredCredits || 0) + ' credits. You have: ' + (availableCredits || 0) + ' credits.';
-            box.appendChild(info);
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
 
-            // Packs grid
-            const grid = document.createElement('div');
-            grid.style = 'display:grid;grid-template-columns:repeat(auto-fit, minmax(180px,1fr));gap:12px;margin-bottom:12px;';
+            // wire close/cancel
+            const closeBtn = document.getElementById('purchase-modal-close');
+            if (closeBtn) closeBtn.addEventListener('click', hidePurchaseModal);
+            const cancelBtn = document.getElementById('purchase-cancel-btn');
+            if (cancelBtn) cancelBtn.addEventListener('click', hidePurchaseModal);
 
+            // prepare packs
+            const gridEl = document.getElementById('purchase-pack-grid');
             let packList = Array.isArray(packs) ? packs.slice() : [];
             if (!packList.length) {
-                // fallback placeholder packs so user can still buy if none configured
                 packList = [
-                    { id: 'starter', label: 'Starter', credits: 5, amount: '49' },
-                    { id: 'growth', label: 'Growth', credits: 20, amount: '179' },
-                    { id: 'pro', label: 'Pro', credits: 60, amount: '499' }
+                    { id: 'starter', label: 'Starter', credits: 5, amount: '49', currency: 'INR' },
+                    { id: 'growth', label: 'Growth', credits: 20, amount: '179', currency: 'INR' },
+                    { id: 'pro', label: 'Pro', credits: 60, amount: '499', currency: 'INR' }
                 ];
             }
 
-            let selectedPackId = null;
+            // order packs by amount (INR) ascending: 10 -> 500
+            try { packList.sort((a,b)=> (Number(a.amount||a.price||a.credits||0) - Number(b.amount||b.price||b.credits||0))); } catch (e) { /* ignore sort errors */ }
+
             const cardEls = {};
+            let selectedPackId = null;
 
             function markSelected(pid) {
                 selectedPackId = pid;
@@ -695,23 +709,21 @@ function setupFormListeners() {
                     const el = cardEls[k];
                     if (!el) return;
                     if (k === pid) {
-                        el.style.border = '2px solid #00c2c2';
-                        el.querySelector('.pack-select-dot')?.classList.remove('hidden');
+                        el.classList.add('selected-pack');
+                        el.style.border = '2px solid #14b8a6';
                     } else {
+                        el.classList.remove('selected-pack');
                         el.style.border = '1px solid rgba(255,255,255,0.03)';
-                        el.querySelector('.pack-select-dot')?.classList.add('hidden');
                     }
                 });
             }
 
             async function buyPackById(pid, btn) {
-                // per-button spinner and local-storage fallback for email/password
                 const originalBtnHtml = btn ? btn.innerHTML : null;
                 try {
-                    if (btn) { btn.disabled = true; btn.innerHTML = '<svg class="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="rgba(0,0,0,0.12)" stroke-width="3"></circle><path d="M22 12a10 10 0 00-10-10" stroke="#071116" stroke-width="3" stroke-linecap="round"></path></svg>'; }
+                    if (btn) { btn.disabled = true; btn.innerHTML = '<span style="display:inline-flex;align-items:center;justify-content:center;width:100%;height:100%"><svg class="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)" stroke-width="3"></circle><path d="M22 12a10 10 0 00-10-10" stroke="#ffffff" stroke-width="3" stroke-linecap="round"></path></svg></span>'; }
 
                     const pack = packList.find(p => (p.id || p._id || p.name || p.packId || p.pack) === pid);
-                    // Ensure email/password from input or localStorage
                     let emailToSend = (emailVal || (obj && obj.delivery_email) || '');
                     try { if (!emailToSend) emailToSend = localStorage.getItem('bhashya_delivery_email') || emailToSend; } catch (e) { }
                     let pwdVal = (passwordInput ? (passwordInput.value || '').trim() : (obj.delivery_password || ''));
@@ -721,7 +733,6 @@ function setupFormListeners() {
                     const resp = await fetch('/api/create-payment-link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
                     if (!resp.ok) { const t = await resp.text().catch(() => resp.statusText); alert('Failed to create payment link: ' + t); return; }
                     const data = await resp.json();
-                    console.log('Payment link response', data);
                     const url = data.paymentUrl || data.payment_url || data.url || data.redirect || (data.payment && data.payment.url);
                     if (url) { window.location.href = url; return; }
                     alert('Payment link not returned');
@@ -731,53 +742,123 @@ function setupFormListeners() {
                 }
             }
 
+            // populate grid
             packList.forEach(p => {
                 const pid = p.id || p._id || p.name || p.packId || p.pack || '';
                 const card = document.createElement('div');
-                card.style = 'text-align:left;border-radius:12px;padding:16px;background:linear-gradient(135deg, rgba(0,194,194,0.08), rgba(7,17,22,0.06));border:1px solid rgba(255,255,255,0.03);cursor:pointer;display:flex;flex-direction:column;gap:10px;min-height:140px;';
+                // compact layout for mobile
+                const isMobile = (typeof window !== 'undefined') && (window.matchMedia ? window.matchMedia('(max-width:640px)').matches : (window.innerWidth <= 640));
+                card.className = (isMobile ? 'package-card flex flex-col justify-between p-3 bg-slate-900/50 border border-slate-800 rounded-xl' : 'package-card flex flex-col justify-between p-5 bg-slate-900/50 border border-slate-800 rounded-xl');
+                card.style.cursor = 'pointer';
 
-                const lbl = document.createElement('div'); lbl.style = 'font-weight:800;color:#e6eef5;font-size:16px;margin-bottom:4px;'; lbl.innerText = (p.label || p.name || pid || 'Pack');
+                const inner = document.createElement('div');
+                // use benefits from dynamic data when available
+                const benefitsHtml = (p && p.benefits) ? p.benefits : (`<div class="mt-4 pt-4 border-t border-slate-800/50 space-y-3">
+                    <div class="flex flex-col"><span class="text-white font-semibold text-sm">~6 Generations</span><span class="text-slate-500 text-[10px]">1 Min • Low AI • 360p</span></div>
+                    <div class="flex flex-col"><span class="text-white font-semibold text-sm">~3 Generations</span><span class="text-slate-500 text-[10px]">1 Min • High AI • HD</span></div>
+                    <div class="flex flex-col"><span class="text-white font-semibold text-sm">~2 Generations</span><span class="text-slate-500 text-[10px]">2 Min • High AI • HD</span></div>
+                </div>`);
 
-                const amountRow = document.createElement('div'); amountRow.style = 'display:flex;gap:8px;align-items:flex-end;color:#c9d6dd;font-size:14px;';
-                const currency = document.createElement('div'); currency.style = 'opacity:0.85;font-size:13px;'; currency.innerText = (p.currency || '');
-                const amount = document.createElement('div'); amount.style = 'font-weight:800;font-size:18px;color:#e6eef5;'; amount.innerText = (typeof p.amount !== 'undefined' && p.amount !== null) ? String(p.amount) : ((typeof p.credits !== 'undefined' && p.credits !== null) ? String(p.credits) : '—');
-                amountRow.appendChild(currency); amountRow.appendChild(amount);
+                // compute rs per credit and badge
+                const rsPerCredit = (p && p.credits && Number(p.credits) > 0 && (typeof p.amount !== 'undefined')) ? (Number(p.amount) / Number(p.credits)).toFixed(2) : null;
+                const hasDiscount = p && (typeof p.discount_percentage !== 'undefined') && Number(p.discount_percentage) > 0;
 
-                card.appendChild(lbl);
-                card.appendChild(amountRow);
+                // ensure card is positioned for absolute badges
+                try { card.classList.add('relative'); } catch (e) { }
 
-                // benefits HTML (if present)
-                if (p.benefits) {
-                    const ben = document.createElement('div');
-                    ben.className = 'pack-benefits';
-                    ben.style = 'color:#9fb0be;font-size:13px;margin-top:8px;margin-bottom:6px;';
-                    try { ben.innerHTML = p.benefits; } catch (e) { ben.textContent = String(p.benefits); }
-                    card.appendChild(ben);
+                // build inner HTML, include discount badge. Mobile uses compact presentation (credits + view benefits + buy label)
+                try {
+                    const badgeHtml = hasDiscount ? ('<div class="absolute -top-3 right-3 bg-teal-500 text-slate-950 text-xs font-bold px-2 py-1 rounded-full">' + (Number(p.discount_percentage).toFixed(0)) + '% off</div>') : '';
+
+                    const outerDiv = document.createElement('div');
+
+                    if (isMobile) {
+                        // Show credits prominently on mobile and skip rs/credit text
+                        const creditsText = (typeof p.credits !== 'undefined' && p.credits !== null) ? (p.credits + ' Credit' + (Number(p.credits) === 1 ? '' : 's')) : (p.label || pid || 'Pack');
+                        outerDiv.innerHTML = badgeHtml + '<h3 class="text-lg font-bold text-white mt-1">' + creditsText + '</h3>';
+                    } else {
+                        // desktop: show label + amount + rs/credit
+                        const priceLine = '<div class="mt-3 flex items-baseline">' +
+                            '<span class="text-slate-400 text-xs font-medium mr-1">' + (p.currency || '') + '</span>' +
+                            '<span class="text-2xl font-bold text-white">' + (typeof p.amount !== 'undefined' && p.amount !== null ? p.amount : (typeof p.credits !== 'undefined' && p.credits !== null ? p.credits : '')) + '</span>' +
+                            '</div>';
+                        outerDiv.innerHTML = badgeHtml + '<h3 class="text-xl font-bold text-white mt-1">' + (p.label || p.name || pid || 'Pack') + '</h3>' + priceLine;
+                    }
+
+                    // view benefits button
+                    const viewBtn = document.createElement('button');
+                    viewBtn.type = 'button';
+                    viewBtn.className = (isMobile ? 'mt-2 text-xs text-slate-400 underline hover:text-white' : 'mt-3 text-xs text-slate-400 underline hover:text-white');
+                    viewBtn.style.background = 'transparent';
+                    viewBtn.style.border = 'none';
+                    viewBtn.style.padding = '0';
+                    viewBtn.style.cursor = 'pointer';
+                    viewBtn.innerText = 'View benefits';
+                    viewBtn.setAttribute('aria-expanded', 'false');
+                    // benefits container (collapsed by default)
+                    const benefitsDiv = document.createElement('div');
+                    benefitsDiv.className = 'pack-benefits-container mt-2';
+                    benefitsDiv.style.overflow = 'hidden';
+                    benefitsDiv.style.maxHeight = '0px';
+                    benefitsDiv.style.transition = 'max-height 0.28s ease';
+                    // fill benefits HTML (if provided), else use fallback snippet
+                    try {
+                        if (p && p.benefits) benefitsDiv.innerHTML = p.benefits;
+                        else benefitsDiv.innerHTML = '<div class="mt-4 pt-4 border-t border-slate-800/50 space-y-3"><div class="flex flex-col"><span class="text-white font-semibold text-sm">~6 Generations</span><span class="text-slate-500 text-[10px]">1 Min • Low AI • 360p</span></div><div class="flex flex-col"><span class="text-white font-semibold text-sm">~3 Generations</span><span class="text-slate-500 text-[10px]">1 Min • High AI • HD</span></div><div class="flex flex-col"><span class="text-white font-semibold text-sm">~2 Generations</span><span class="text-slate-500 text-[10px]">2 Min • High AI • HD</span></div></div>';
+                    } catch (e) { benefitsDiv.textContent = '' }
+
+                    // toggle handler should not trigger card click / purchase
+                    viewBtn.addEventListener('click', (ev) => {
+                        ev.stopPropagation();
+                        const open = viewBtn.getAttribute('aria-expanded') === 'true';
+                        if (open) {
+                            benefitsDiv.style.maxHeight = '0px';
+                            viewBtn.setAttribute('aria-expanded', 'false');
+                            viewBtn.innerText = 'View benefits';
+                        } else {
+                            // set to scrollHeight for smooth expand
+                            try { benefitsDiv.style.maxHeight = benefitsDiv.scrollHeight + 'px'; } catch (e) { benefitsDiv.style.maxHeight = '400px'; }
+                            viewBtn.setAttribute('aria-expanded', 'true');
+                            viewBtn.innerText = 'Hide benefits';
+                        }
+                    });
+
+                    outerDiv.appendChild(viewBtn);
+                    outerDiv.appendChild(benefitsDiv);
+
+                    // small features list (kept for visual parity) - hidden on mobile to save height
+                    if (!isMobile) {
+                        const featuresUl = document.createElement('ul');
+                        featuresUl.className = 'mt-4 space-y-2 text-xs text-slate-400';
+                        featuresUl.innerHTML = '<li class="flex items-center"><svg class="h-3 w-3 text-teal-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>' + (p.label ? 'Features' : '') + '</li>';
+                        outerDiv.appendChild(featuresUl);
+                    }
+
+                    inner.appendChild(outerDiv);
+                } catch (e) {
+                    inner.textContent = (p.label || pid || 'Pack');
                 }
 
-                // buy button full width
-                const buyBtn = document.createElement('button');
-                buyBtn.type = 'button';
-                buyBtn.innerText = 'Buy';
-                buyBtn.style = 'width:100%;display:inline-flex;align-items:center;justify-content:center;background:#00c2c2;color:#071116;border:none;padding:12px;border-radius:10px;cursor:pointer;font-weight:800;box-shadow:0 6px 18px rgba(0,0,0,0.45);';
-                buyBtn.addEventListener('click', (ev) => { ev.stopPropagation(); buyPackById(pid, buyBtn); });
-                card.appendChild(buyBtn);
+                const btn = document.createElement('button');
+                btn.className = (isMobile ? 'w-full mt-4 py-2 px-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-lg transition-colors text-sm' : 'w-full mt-6 py-2 px-4 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-lg transition-colors text-sm');
+                btn.type = 'button';
+                btn.innerText = (isMobile ? ('Buy for ' + (p.currency || 'INR') + ' ' + (typeof p.amount !== 'undefined' && p.amount !== null ? p.amount : '')) : 'Buy Now');
+                btn.addEventListener('click', (ev) => { ev.stopPropagation(); buyPackById(pid, btn); });
 
-                card.addEventListener('click', () => { markSelected(pid); });
-                grid.appendChild(card);
+                card.appendChild(inner);
+                card.appendChild(btn);
+
+                // clicking the card should select and start the purchase (not just the buy button)
+                card.addEventListener('click', () => { try { markSelected(pid); buyPackById(pid, btn); } catch (e) { console.warn('card click handler error', e); } });
+                gridEl.appendChild(card);
                 cardEls[pid] = card;
+
+                // if pack is marked default_selected, pre-select it
+                if (p && p.default_selected) {
+                    try { markSelected(pid); } catch (e) { }
+                }
             });
 
-            box.appendChild(grid);
-
-            // footer actions
-            const footer = document.createElement('div'); footer.style = 'display:flex;justify-content:flex-end;gap:8px;margin-top:8px;';
-            const cancelBtn = document.createElement('button'); cancelBtn.type = 'button'; cancelBtn.innerText = 'Cancel'; cancelBtn.style = 'background:transparent;border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:8px 12px;border-radius:6px;cursor:pointer;'; cancelBtn.onclick = hidePurchaseModal;
-            footer.appendChild(cancelBtn);
-            box.appendChild(footer);
-
-            overlay.appendChild(box);
-            document.body.appendChild(overlay);
         } catch (e) { console.warn('showPurchaseModal error', e); }
     }
 
