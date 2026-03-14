@@ -788,12 +788,12 @@ function setupFormListeners() {
                     // view benefits button
                     const viewBtn = document.createElement('button');
                     viewBtn.type = 'button';
-                    viewBtn.className = (isMobile ? 'mt-2 text-xs text-slate-400 underline hover:text-white' : 'mt-3 text-xs text-slate-400 underline hover:text-white');
+                    viewBtn.className = (isMobile ? 'inline-flex items-center gap-1 mt-2 text-xs text-slate-400 underline hover:text-white' : 'inline-flex items-center gap-1 mt-3 text-xs text-slate-400 underline hover:text-white');
                     viewBtn.style.background = 'transparent';
                     viewBtn.style.border = 'none';
                     viewBtn.style.padding = '0';
                     viewBtn.style.cursor = 'pointer';
-                    viewBtn.innerHTML = '<svg class="h-3 w-3 text-teal-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>View benefits';
+                    viewBtn.innerHTML = '<svg class="h-3 w-3 text-teal-500 mr-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>View benefits';
                     viewBtn.setAttribute('aria-expanded', 'false');
                     // benefits container (collapsed by default)
                     const benefitsDiv = document.createElement('div');
@@ -814,7 +814,7 @@ function setupFormListeners() {
                         if (open) {
                             benefitsDiv.style.maxHeight = '0px';
                             viewBtn.setAttribute('aria-expanded', 'false');
-                            viewBtn.innerHTML = '<svg class="h-3 w-3 text-teal-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>View benefits';
+                            viewBtn.innerHTML = '<svg class="h-3 w-3 text-teal-500 mr-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>View benefits';
                         } else {
                             // set to scrollHeight for smooth expand
                             try { benefitsDiv.style.maxHeight = benefitsDiv.scrollHeight + 'px'; } catch (e) { benefitsDiv.style.maxHeight = '400px'; }
