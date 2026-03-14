@@ -2450,6 +2450,26 @@ window.applyReturnState = function () {
             tokenInput.value = stateObj.token;
             tokenInput.dispatchEvent(new Event('input', { bubbles: true }));
         }
+
+        // Apply avatar id if present in state (support multiple property names)
+        if (typeof stateObj.avatarId !== 'undefined' || typeof stateObj.avatar_id !== 'undefined' || typeof stateObj.avatar !== 'undefined') {
+            const avId = (typeof stateObj.avatarId !== 'undefined') ? stateObj.avatarId : ((typeof stateObj.avatar_id !== 'undefined') ? stateObj.avatar_id : stateObj.avatar);
+            try {
+                // Persist selection immediately so later initialization picks it up
+                try { localStorage.setItem('bhashya_selected_avatar', avId); } catch (e) { }
+                try { window.__pendingAvatarId = avId; } catch (e) { }
+
+                // Try to apply immediately if helpers exist
+                if (window.selectAvatarById && typeof window.selectAvatarById === 'function') {
+                    window.selectAvatarById(avId).catch(() => { });
+                }
+                if (window.__formObj) {
+                    window.__formObj.avatarId = avId;
+                    if (typeof updateSelectedAvatarUI === 'function') updateSelectedAvatarUI({ id: avId });
+                }
+            } catch (e) { console.warn('applyReturnState: failed to set avatarId', e); }
+        }
+
         if (status === 'TXN_SUCCESS') {
             const genBtn = document.getElementById('generate-btn');
             if (genBtn) setTimeout(() => {
