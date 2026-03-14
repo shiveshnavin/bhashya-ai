@@ -1,5 +1,6 @@
 const { FireStoreDB } = require('multi-db-orm')
 const crypto = require('crypto')
+const axios = require('axios');
 
 
 const ENABLE_FREE_TIER = false; // set to true to disable free tier (for testing purposes)
@@ -132,28 +133,56 @@ class Service {
             }
         } catch (e) { /* ignore cache read errors */ }
 
-        let packs;
         try {
-            packs = await this.db.get(TABLE_PACKAGES, {});
-        } catch (e) {
-            packs = [];
-        }
-
-        if (!Array.isArray(packs) || packs.length === 0) {
-            const defaultPack = { id: 'credit_1', label: '1 Credit', credits: 1, amount: 10, currency: 'INR' };
-            try {
-                await this.db.insert(TABLE_PACKAGES, defaultPack, defaultPack.id);
-            } catch (e) {
-                // ignore insert errors (possible race if another instance inserted simultaneously)
+            const rtdbBase = (process.env.FIREBASE_RTDB_URL || 'https://bhashya-ai-default-rtdb.firebaseio.com').replace(/\/$/, '');
+            const url = `${rtdbBase}/packages.json`;
+            const resp = await axios.get(url);
+            if (resp.status !== 200) {
+                console.warn('getPacks fetch failed', resp.status);
+                if (this._packsCache && this._packsCache.packs) return this._packsCache.packs;
+                // Do not fallback to Firestore; packages must come from RTDB
+                return [];
             }
-            packs = [defaultPack];
+
+            const data = resp.data;
+            let packs = [];
+            if (!data) packs = [];
+            else if (Array.isArray(data)) {
+                packs = data.filter(Boolean).map((v, idx) => (v && typeof v === 'object') ? ({ id: v.id || String(idx), ...v }) : ({ id: String(idx), value: v }));
+            } else if (typeof data === 'object') {
+                packs = Object.entries(data).map(([k, v]) => (v && typeof v === 'object') ? ({ id: k, ...v }) : ({ id: k, value: v }));
+            } else {
+                packs = [];
+            }
+
+            // normalize and ensure required fields
+            packs = (packs || []).map(p => {
+                const id = p.id || (p && p._id) || (p && p.name) || '';
+                const amount = Number((p && (p.amount || p.price)) || 0) || 0;
+                const credits = Number((p && p.credits) || 0) || 0;
+                const currency = (p && p.currency) || 'INR';
+                const label = (p && p.label) || (credits ? `${credits} Credits` : (amount ? `${amount}` : 'Pack'));
+                const benefits = (p && p.benefits) || '';
+                const discount_percentage = (typeof (p && p.discount_percentage) !== 'undefined') ? Number(p.discount_percentage) : 0;
+                const default_selected = !!(p && p.default_selected);
+                return { id, label, credits, amount, currency, benefits, discount_percentage, default_selected };
+            });
+
+            if (!packs.length) {
+                const defaultPack = { id: 'credit_1', label: '1 Credit', credits: 1, amount: 10, currency: 'INR', benefits: '', discount_percentage: 0, default_selected: false };
+                // Do not persist to Firestore; keep default for in-memory fallback
+                packs = [defaultPack];
+            }
+
+            try { this._packsCache = { packs, ts: now }; } catch (e) { /* ignore cache write errors */ }
+            return packs;
+        } catch (e) {
+            console.warn('getPacks error', e);
+            try {
+                if (this._packsCache && this._packsCache.packs) return this._packsCache.packs;
+            } catch (e2) { /* ignore */ }
+            return [];
         }
-
-        try {
-            this._packsCache = { packs, ts: now };
-        } catch (e) { /* ignore cache write errors */ }
-
-        return packs;
     }
 
     async getAvatars() {
@@ -236,11 +265,13 @@ class Service {
                     const right = Number(m[2]);
                     // left may be packId or the word 'credits'
                     if (/^credits$/i.test(left)) return right;
-                    // treat left as packId
+                    // treat left as packId - try to resolve from RTDB packs
                     try {
-                        const pack = await this.db.getOne(TABLE_PACKAGES, {}, left);
-                        if (pack && typeof pack.credits !== 'undefined') return Number(pack.credits);
-                    } catch (e) { /* ignore db lookup errors */ }
+                        const packsForLookup = await this.getPacks();
+                        const pck = (packsForLookup || []).find(x => ((x.id || x._id || '').toString() === left.toString()));
+                        if (pck && typeof pck.credits !== 'undefined') return Number(pck.credits);
+                    } catch (e) { /* ignore lookup errors */ }
+                    // fallback to numeric right-side
                     return right;
                 }
                 const m2 = prod.match(/^credits_(\d+)$/i);
@@ -248,7 +279,7 @@ class Service {
             }
         } catch (e) { /* ignore */ }
 
-        // fallback: try numeric amount -> match a pack by amount
+        // fallback: try numeric amount -> match a pack by amount (from RTDB)
         const amt = Number(paymentObj.amount || paymentObj.TXN_AMOUNT || paymentObj.AMOUNT || 0) || 0;
         if (amt > 0) {
             try {
@@ -270,7 +301,9 @@ class Service {
         let amount = 0;
         let resolvedCredits = credits || 0;
         if (packId) {
-            const pack = await this.db.getOne(TABLE_PACKAGES, {}, packId);
+            // lookup pack in RTDB
+            const packs = await this.getPacks();
+            const pack = (packs || []).find(x => (x.id || x._id || x.name || x.packId || x.pack || '').toString() === packId.toString());
             if (!pack) throw new Error('pack not found');
             amount = pack.amount || pack.price || 0;
             resolvedCredits = pack.credits || resolvedCredits;
@@ -540,7 +573,7 @@ class Service {
 /**
  * {id, label, amount, credits, hold,  currency}
  */
-const TABLE_PACKAGES = 'packages'
+
 
 /**
  * {email, id, credits, createdAt, updatedAt, lastPaymentId}
@@ -566,7 +599,7 @@ const TABLE_CREDITS = 'credits'
                 video_type?: 'avatar' | 'slideshow'
             }
   
-
+ 
  * Generation document schema
  * 
  * {
