@@ -582,7 +582,27 @@ function setupFormListeners() {
                 payload.delivery_password = pwdVal;
 
                 // ensure avatar selection is included in payload
-                if (obj.avatarId) payload.avatarId = obj.avatarId;
+                if (obj.avatarId) {
+                    payload.avatarId = obj.avatarId;
+                } else {
+                    // fallback: read from pending global set by applyReturnState or from localStorage cache
+                    let storedAvatar = null;
+                    try { if (window.__pendingAvatarId) storedAvatar = window.__pendingAvatarId; } catch (e) { }
+                    if (!storedAvatar) {
+                        try { storedAvatar = localStorage.getItem('bhashya_selected_avatar'); } catch (e) { storedAvatar = null; }
+                    }
+                    if (storedAvatar) {
+                        // localStorage stores strings — normalize numeric ids to Number to match server expectations
+                        let normalizedAvatar = storedAvatar;
+                        try {
+                            if (typeof storedAvatar === 'string' && /^\d+$/.test(storedAvatar.trim())) {
+                                normalizedAvatar = Number(storedAvatar.trim());
+                            }
+                        } catch (e) { /* keep as string on error */ }
+                        payload.avatarId = normalizedAvatar;
+                        try { obj.avatarId = normalizedAvatar; } catch (e) { }
+                    }
+                }
 
                 const res = await fetch('/api/generate', {
                     method: 'POST',
