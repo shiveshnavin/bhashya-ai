@@ -489,16 +489,30 @@ class Service {
 
     calculateRequiredCredits(generationInput) {
         const input = generationInput || {};
-        const duration = Math.max(1, Number(input.duration || 1));
-        const basePerMinute = 40; // baseline cost per minute
-        const resolutionMap = { '360p': 0.6, 'sd': 1, 'sd': 1, 'hd': 1.8 };
-        const resKey = (String(input.resolution || '360p') || '360p').toLowerCase();
-        const resFactor = resolutionMap[resKey] || 1;
-        const graphicsFactor = (String(input.graphics_quality || 'low').toLowerCase() === 'high') ? 1.4 : 0.6;
-        const speech = (String(input.speech_quality || 'low-ai').toLowerCase());
-        const speechFactor = (speech === 'neural') ? 1.0 : (speech === 'high-ai' ? 1.6 : 0.6);
-        const raw = basePerMinute * duration * resFactor * graphicsFactor * speechFactor;
-        return Math.max(0, Math.ceil(raw));
+        const duration = Math.max(1, Math.floor(Number(input.duration || 1)));
+        const res = (String(input.resolution || '360p')).toLowerCase();
+        const graphics = (String(input.graphics_quality || 'low')).toLowerCase();
+        const speech = (String(input.speech_quality || 'low-ai')).toLowerCase();
+
+        // All-low (lowend) configuration: 360p + low graphics + low-ai => 1 credit per minute
+        const isLowend = (graphics === 'low' && res === '360p' && speech === 'low-ai');
+
+        let baseCredits;
+        if (isLowend) {
+            baseCredits = 1;
+        } else if (speech === 'high-ai' || res === 'hd') {
+            // High AI or HD resolution => 3 credits per minute
+            baseCredits = 3;
+        } else if (speech === 'low-ai' || res === 'sd' || graphics === 'high') {
+            // Low AI, SD resolution, or high graphics => 2 credits per minute
+            baseCredits = 2;
+        } else {
+            baseCredits = 1;
+        }
+
+        // Credits scale linearly with duration (so 2 minutes doubles credits)
+        const credits = Math.max(1, Math.ceil(baseCredits * duration));
+        return credits;
     }
 
 

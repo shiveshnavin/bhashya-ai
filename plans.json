@@ -5,7 +5,7 @@
     "amount": 10,
     "credits": 1,
     "currency": "INR",
-    "benefits": "<div style=\"font-size:13.5px;\"> <div style=\"margin-bottom:8px;\"> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • Low AI • 360p</span> </div> <div style=\"margin-bottom:8px;\"> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • High AI • HD</span> </div> <div> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">2 Min • High AI • HD</span> </div> </div>",
+    "benefits": "<div style=\"font-size:13.5px;\"> <div style=\"margin-bottom:8px;\"> <strong>~1 Generation</strong><br> <span style=\"opacity:0.65;\">1 Min • Low AI • 360p</span> </div> <div style=\"margin-bottom:8px;\"> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • High AI • HD</span> </div> <div> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">2 Min • High AI • HD</span> </div> </div>",
     "discount_percentage": 0.00,
     "default_selected": false
   },
@@ -15,7 +15,7 @@
     "amount": 50,
     "credits": 6,
     "currency": "INR",
-    "benefits": "<div style=\"font-size:13.5px;\"> <div style=\"margin-bottom:8px;\"> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • Low AI • 360p</span> </div> <div style=\"margin-bottom:8px;\"> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • High AI • HD</span> </div> <div> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">2 Min • High AI • HD</span> </div> </div>",
+    "benefits": "<div style=\"font-size:13.5px;\"> <div style=\"margin-bottom:8px;\"> <strong>~6 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • Low AI • 360p</span> </div> <div style=\"margin-bottom:8px;\"> <strong>~2 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • High AI • HD</span> </div> <div> <strong>~1 Generation</strong><br> <span style=\"opacity:0.65;\">2 Min • High AI • HD</span> </div> </div>",
     "discount_percentage": 16.67,
     "default_selected": false
   },
@@ -25,7 +25,7 @@
     "amount": 100,
     "credits": 13,
     "currency": "INR",
-    "benefits": "<div style=\"font-size:13.5px;\"> <div style=\"margin-bottom:8px;\"> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • Low AI • 360p</span> </div> <div style=\"margin-bottom:8px;\"> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • High AI • HD</span> </div> <div> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">2 Min • High AI • HD</span> </div> </div>",
+    "benefits": "<div style=\"font-size:13.5px;\"> <div style=\"margin-bottom:8px;\"> <strong>~13 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • Low AI • 360p</span> </div> <div style=\"margin-bottom:8px;\"> <strong>~4 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • High AI • HD</span> </div> <div> <strong>~2 Generations</strong><br> <span style=\"opacity:0.65;\">2 Min • High AI • HD</span> </div> </div>",
     "discount_percentage": 23.08,
     "default_selected": false
   },
@@ -35,7 +35,7 @@
     "amount": 200,
     "credits": 29,
     "currency": "INR",
-    "benefits": "<div style=\"font-size:13.5px;\"> <div style=\"margin-bottom:8px;\"> <strong>~1 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • Low AI • 360p</span> </div> <div style=\"margin-bottom:8px;\"> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • High AI • HD</span> </div> <div> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">2 Min • High AI • HD</span> </div> </div>",
+    "benefits": "<div style=\"font-size:13.5px;\"> <div style=\"margin-bottom:8px;\"> <strong>~29 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • Low AI • 360p</span> </div> <div style=\"margin-bottom:8px;\"> <strong>~9 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • High AI • HD</span> </div> <div> <strong>~4 Generations</strong><br> <span style=\"opacity:0.65;\">2 Min • High AI • HD</span> </div> </div>",
     "discount_percentage": 31.03,
     "default_selected": false
   },
@@ -45,7 +45,7 @@
     "amount": 500,
     "credits": 100,
     "currency": "INR",
-    "benefits": "<div style=\"font-size:13.5px;\"> <div style=\"margin-bottom:8px;\"> <strong>~6 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • Low AI • 360p</span> </div> <div style=\"margin-bottom:8px;\"> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • High AI • HD</span> </div> <div> <strong>~0 Generations</strong><br> <span style=\"opacity:0.65;\">2 Min • High AI • HD</span> </div> </div>",
+    "benefits": "<div style=\"font-size:13.5px;\"> <div style=\"margin-bottom:8px;\"> <strong>~100 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • Low AI • 360p</span> </div> <div style=\"margin-bottom:8px;\"> <strong>~33 Generations</strong><br> <span style=\"opacity:0.65;\">1 Min • High AI • HD</span> </div> <div> <strong>~16 Generations</strong><br> <span style=\"opacity:0.65;\">2 Min • High AI • HD</span> </div> </div>",
     "discount_percentage": 50.00,
     "default_selected": true
   }
