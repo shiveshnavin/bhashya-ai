@@ -1527,9 +1527,9 @@ if (typeof window !== 'undefined') {
         let unsubscribe = null;
         let hasCheckedGuaranteedStatus = false;
 
-        function isCompletedGenerationStatus(status) {
+        function isCompletedGenerationStatus(status, output) {
             const normalized = String(status || '').toUpperCase();
-            return normalized === 'SUCCESS' || normalized === 'PARTIAL_SUCCESS';
+            return normalized === 'SUCCESS' || normalized === 'PARTIAL_SUCCESS' || (output && output.url != undefined);
         }
 
         function normalizeGenerationData(source) {
@@ -1588,10 +1588,10 @@ if (typeof window !== 'undefined') {
         function maybeReconcileGuaranteedStatus(snapshotData) {
             if (hasCheckedGuaranteedStatus) return;
             hasCheckedGuaranteedStatus = true;
-            if (isCompletedGenerationStatus(snapshotData && snapshotData.status)) return;
+            if (isCompletedGenerationStatus(snapshotData && snapshotData.status, snapshotData.output)) return;
             Promise.resolve().then(async () => {
                 const guaranteedData = await fetchGuaranteedGenerationStatus();
-                if (!guaranteedData || !isCompletedGenerationStatus(guaranteedData.status)) return;
+                if (!guaranteedData || !isCompletedGenerationStatus(guaranteedData.status, guaranteedData.output)) return;
                 console.log('Using guaranteed completed generation status from proxy for', id);
                 handleSnapshot({
                     id,
@@ -2287,6 +2287,10 @@ if (typeof window !== 'undefined') {
 
 // small helpers used when rendering pipeline
 const stepDescriptions = {
+    "prepare-script-prompt": "Preparing an script prompt for narration",
+    "generate-image-prompts": "Building image prompts for visual asset generation",
+    "generate-bubble-prompts": "Building image prompts for overlay asset generation",
+
     "load-topic": "Loading the next topic for generation",
     "notify-topics-exhausted": "No more topics available; notifying handler",
     "prepare-caption-and-category-generation": "Preparing to generate the captions and predict the adjusted category from topic",
