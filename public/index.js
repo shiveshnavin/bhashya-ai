@@ -55,7 +55,7 @@ function setupFormListeners() {
 
     // on load: try to preselect avatar from localStorage
     try {
-        const storedAvatar = (() => { try { return localStorage.getItem('bhashya_selected_avatar'); } catch (e) { return null; } })();
+        const storedAvatar = (() => { try { return localStorage.getItem('bhashya_selected_avatar') || "698c713672309b00074febb6"; } catch (e) { return "698c713672309b00074febb6"; } })();
         if (storedAvatar) { selectAvatarById(storedAvatar).catch(() => { }); }
     } catch (e) { }
 
