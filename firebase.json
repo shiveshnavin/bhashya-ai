@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "inreelio",
+    "site": "bhashya-ai",
     "public": "public",
     "ignore": [
       "firebase.json",

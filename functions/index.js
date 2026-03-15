@@ -162,11 +162,22 @@ app.get('/api/avatars', async (req, res) => {
 app.post('/api/generate', async (req, res, next) => {
     try {
         const payload = req.body || {};
-        // If request originates from the official web origin, skip all pre-checks
+        // If request originates from the official web origin, skip auth pre-checks and proxy directly
         try {
             const originHeader = String(req.get('origin') || req.get('referer') || req.headers.origin || '');
             if (originHeader && originHeader.includes('bhashya-ai.web.app')) {
-                return next();
+                let webhookUrl = `${process.env.HOST}/api/webhook/generation`;
+                req.body.webhook_url = webhookUrl;
+                const targetUrl = (proxyTarget || '').replace(/\/$/, '') + '/api/generate';
+                try { req.body.origin = originHeader; } catch (e) { }
+                req.body.token = process.env.PAID_TOKEN
+                const fetchResp = await fetch(targetUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(req.body) });
+                const status = fetchResp.status;
+                const bodyStr = await fetchResp.text();
+                let parsed = null;
+                try { parsed = JSON.parse(bodyStr); } catch (e) { parsed = null; }
+                if (parsed) return res.status(status).json(parsed);
+                return res.status(status).send(bodyStr);
             }
         } catch (e) { /* ignore */ }
 
