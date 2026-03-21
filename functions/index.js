@@ -315,4 +315,15 @@ app.delete('/api/generate/:id', async (req, res) => {
     }
 });
 
+app.get('/api/refresh-data', async (req, res) => {
+    try {
+        let refreshedData = await service.refreshAllData();
+        res.json(refreshedData);
+    } catch (err) {
+        console.error('refresh-data error', err && err.message || err);
+        res.status(500).json({ error: 'failed' });
+    }
+});
+
+
 exports.apiGenerateProxy = onRequest(app);

@@ -3,7 +3,6 @@ const crypto = require('crypto')
 const axios = require('axios');
 
 
-const ENABLE_FREE_TIER = false; // set to true to disable free tier (for testing purposes)
 class Service {
 
     db
@@ -11,6 +10,8 @@ class Service {
     payServiceAccessToken
     payserviceUrl
     payserviceWebhookSecret
+    enable_free = false; // set to true to disable free tier (for testing purposes)
+
     constructor(admin, host, payServiceAccessToken, payserviceUrl, payserviceWebhookSecret) {
         this.admin = admin
         this.db = new FireStoreDB(undefined, 'payments', admin)
@@ -124,11 +125,11 @@ class Service {
         } catch (e) { console.warn('confirmPasswordReset error', e); return { ok: false, reason: 'error' }; }
     }
 
-    async getPacks() {
+    async getPacks(forceRefresh = false) {
         const now = Date.now();
         const ttl = 60 * 60 * 1000; // cache TTL 1 hour
         try {
-            if (this._packsCache && (now - (this._packsCache.ts || 0)) < ttl) {
+            if (!forceRefresh && this._packsCache && (now - (this._packsCache.ts || 0)) < ttl) {
                 return this._packsCache.packs;
             }
         } catch (e) { /* ignore cache read errors */ }
@@ -183,6 +184,86 @@ class Service {
             } catch (e2) { /* ignore */ }
             return [];
         }
+    }
+
+    async refreshAllData() {
+        // Refresh packs cache first (force refresh to pick updates immediately)
+        try {
+            await this.getPacks(true);
+        } catch (e) {
+            console.warn('refreshAllData getPacks failed', e);
+        }
+
+        // Fetch remote config from RTDB and apply relevant runtime flags
+        try {
+            let config = null;
+            if (this.admin && typeof this.admin.database === 'function') {
+                const snapshot = await this.admin.database().ref('/config').once('value');
+                config = snapshot.exists() ? snapshot.val() : null;
+            } else {
+                const rtdbBase = (process.env.FIREBASE_RTDB_URL || 'https://bhashya-ai-default-rtdb.firebaseio.com').replace(/\/$/, '');
+                const configUrl = `${rtdbBase}/config.json`;
+                const configResp = await axios.get(configUrl, { timeout: 15000 });
+                if (configResp.status === 200 && configResp.data && typeof configResp.data === 'object') {
+                    config = configResp.data;
+                }
+            }
+
+            if (config && typeof config === 'object') {
+                if (typeof config.enable_free !== 'undefined') {
+                    this.enable_free = !!config.enable_free;
+                }
+                // respect externally configured values and fall back to existing settings
+                if (typeof config.payserviceUrl === 'string' && config.payserviceUrl.trim()) {
+                    this.payserviceUrl = config.payserviceUrl.trim();
+                }
+                if (typeof config.payServiceAccessToken === 'string' && config.payServiceAccessToken.trim()) {
+                    this.payServiceAccessToken = config.payServiceAccessToken.trim();
+                }
+                if (typeof config.payserviceWebhookSecret === 'string' && config.payserviceWebhookSecret.trim()) {
+                    this.payserviceWebhookSecret = config.payserviceWebhookSecret.trim();
+                }
+            }
+        } catch (e) {
+            console.warn('refreshAllData config fetch failed', e);
+        }
+
+        // Refresh avatars from bot service and sync back to RTDB
+        try {
+            const botServiceBase = (process.env.BOTSERVICE_URL || '').replace(/\/$/, '');
+            if (botServiceBase) {
+                const avatarsUrl = `${botServiceBase}/avatars`;
+                const headers = {};
+                if (process.env.BOTS_SERVICE_ACCESS_TOKEN) {
+                    headers.Authorization = `Bearer ${process.env.BOTS_SERVICE_ACCESS_TOKEN}`;
+                }
+                const avatarsResp = await axios.get(avatarsUrl, { headers, timeout: 20000 });
+                if (avatarsResp.status === 200) {
+                    const avatarsData = avatarsResp.data || [];
+                    try {
+                        this._avatarsCache = { avatars: avatarsData, ts: Date.now() };
+                        if (this.admin && typeof this.admin.database === 'function') {
+                            await this.admin.database().ref('/avatars').set(avatarsData);
+                        } else {
+                            // fallback: write directly to RTDB via REST API
+                            const rtdbBase = (process.env.FIREBASE_RTDB_URL || 'https://bhashya-ai-default-rtdb.firebaseio.com').replace(/\/$/, '');
+                            await axios.put(`${rtdbBase}/avatars.json`, avatarsData, { timeout: 20000 });
+                        }
+                    } catch (writeErr) {
+                        console.warn('refreshAllData avatars write failed', writeErr);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('refreshAllData avatars fetch failed', e);
+        }
+
+        return {
+            ok: true,
+            enable_free: this.enable_free,
+            avatars: (this._avatarsCache && this._avatarsCache.avatars) || [],
+            packages: (this._packsCache && this._packsCache.packs) || [],
+        };
     }
 
     async getAvatars() {
@@ -469,7 +550,7 @@ class Service {
             && (String(generationInput?.graphics_quality || '').toLowerCase() === 'low')
             && (String(generationInput?.speech_quality || '').toLowerCase() === 'neural');
 
-        isFreeFormFactor = isFreeFormFactor && ENABLE_FREE_TIER; // disable free tier for now
+        isFreeFormFactor = isFreeFormFactor && this.enable_free; // disable free tier for now
 
         const data = (await this.db.getOne(TABLE_CREDITS, {}, email)) || { credits: 0, held: 0, freeCount: 0 };
         const available = (data.credits || 0) - (data.held || 0);
