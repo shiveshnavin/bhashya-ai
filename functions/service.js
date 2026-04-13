@@ -10,7 +10,8 @@ class Service {
     payServiceAccessToken
     payserviceUrl
     payserviceWebhookSecret
-    enable_free = true; // set to true to disable free tier (for testing purposes)
+    enable_free = false; // set to true to disable free tier (for testing purposes)
+    signup_credits = 10; // set to true to disable free tier (for testing purposes)
 
     constructor(admin, host, payServiceAccessToken, payserviceUrl, payserviceWebhookSecret) {
         this.admin = admin
@@ -212,10 +213,16 @@ class Service {
             if (config && typeof config === 'object') {
                 if (typeof config.enable_free !== 'undefined') {
                     this.enable_free = !!config.enable_free;
+                    console.log('refreshAllData applied enable_free config', this.enable_free);
+                }
+                if (typeof config.signup_credits !== 'undefined') {
+                    this.signup_credits = Number(config.signup_credits) || 0;
+                    console.log('refreshAllData applied signup_credits config', this.signup_credits);
                 }
                 // respect externally configured values and fall back to existing settings
                 if (typeof config.payserviceUrl === 'string' && config.payserviceUrl.trim()) {
                     this.payserviceUrl = config.payserviceUrl.trim();
+                    console.log('refreshAllData applied payserviceUrl config', this.payserviceUrl);
                 }
                 if (typeof config.payServiceAccessToken === 'string' && config.payServiceAccessToken.trim()) {
                     this.payServiceAccessToken = config.payServiceAccessToken.trim();
