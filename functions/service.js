@@ -11,7 +11,7 @@ class Service {
     payserviceUrl
     payserviceWebhookSecret
     enable_free = false; // set to true to disable free tier (for testing purposes)
-    signup_credits = 10; // set to true to disable free tier (for testing purposes)
+    signup_credits = 2; // set to true to disable free tier (for testing purposes)
 
     constructor(admin, host, payServiceAccessToken, payserviceUrl, payserviceWebhookSecret) {
         this.admin = admin
