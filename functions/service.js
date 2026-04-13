@@ -35,7 +35,8 @@ class Service {
         if (!existing) {
             if (!password) return false;
             const { salt, hash } = this._hashPassword(password);
-            const doc = { email, credits: 0, held: 0, freeCount: 0, passwordHash: hash, passwordSalt: salt, updatedAt: Date.now() };
+            const credits = Number(this.signup_credits) || 0;
+            const doc = { email, credits, held: 0, freeCount: 0, passwordHash: hash, passwordSalt: salt, updatedAt: Date.now() };
             try { await this.db.insert(TABLE_CREDITS, doc, email); } catch (e) { /* ignore */ }
             return true;
         }
